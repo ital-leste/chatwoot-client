@@ -23,3 +23,14 @@ Os testes unitários e de contrato usam httpx.MockTransport; não devem disparar
 ## Barreiras
 
 Testes simulados não comprovam compatibilidade operacional em servidor real. A promoção à main exige aprovação da regressão, da revisão e dos cenários integrados pertinentes.
+
+## Regressão das operações para Hermes
+
+- `ConversationStatus`: testar cada estado e a compatibilidade de strings legadas.
+- Catálogo: criar `LabelDefinition` em conta de teste; conferir cor, campos opcionais e retorno.
+- Associação: partir de duas etiquetas existentes, adicionar uma terceira e confirmar que as primeiras persistem; não duplicar na segunda chamada.
+- Remoção: remover uma etiqueta e confirmar que as demais permanecem.
+- Substituição intencional: confirmar que `replace` continua sobrescrevendo todas.
+- Resposta GET inválida/HTTP 5xx: confirmar que `add` não envia POST.
+- Concorrência: simular duas alterações em uma conversa e confirmar a necessidade de ordenação por conversa no executor Hermes.
+- Mensagem de voz: testar o flag `is_voice_message` com `audio/ogg`, sem pressupor paridade dos adaptadores Evolution e WhatsApp Cloud.

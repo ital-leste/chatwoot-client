@@ -2,6 +2,13 @@
 
 ## Unreleased — homolog
 
+- Mensagens tipadas simplificadas com `private: bool` e `send_media` como interface preferencial; `MessageVisibility` continua como alias de compatibilidade.
+- `MediaMessage.is_voice_message` habilita marcador oficial do builder Chatwoot para arquivo OGG.
+- `ConversationStatus` exportado na raiz e aceito por `conversations.set_status` sem quebrar strings originais.
+- `LabelDefinition` e `labels.create_label()` para criação tipada no catálogo.
+- `conversation_labels.add/remove` implementam união/subtração conservadora da lista existente; `replace` mantém substituição total.
+
+
 - Contratos tipados imutáveis `TextMessage`, `MediaMessage`, `Attachment` e enumerações exportadas pela raiz do pacote.
 - Operações `send_text`, `send_media`, `send_image`, `send_audio`, `send_video`, `send_document`, mantendo o endpoint de mensagens existente.
 - Resolução de caminho local, bytes, fluxo e HTTPS para anexos com limite de tamanho, allowlist opcional e sem exposição de token Chatwoot a outros hosts.

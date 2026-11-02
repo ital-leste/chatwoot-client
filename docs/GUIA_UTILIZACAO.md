@@ -7,7 +7,7 @@ Instalação: `python -m pip install -e ".[test]"`. Testes: `python -m pytest -q
 ```python
 from chatwoot_client import (
     CWClient, TextMessage, MediaMessage, Attachment,
-    MimeType, MessageVisibility, MessageType,
+    MimeType, ConversationStatus, LabelDefinition, MessageType,
     ErroAPIChatwoot, ErroAnexoChatwoot,
 )
 ```
@@ -29,7 +29,7 @@ with CWClient("https://chatwoot.exemplo", "TOKEN") as cw:
     cw.messages.send_text(1, 2, TextMessage("Bom dia!"))
     cw.messages.send_text(
         1, 2,
-        TextMessage("Verificar documentos.", visibility=MessageVisibility.PRIVATE),
+        TextMessage("Verificar documentos.", private=True),
     )
 ```
 
@@ -84,3 +84,54 @@ Para um fluxo aberto em modo `rb`, informe `filename` e `mime_type`. A bibliotec
 ## Compatibilidade
 
 Continuam disponíveis `messages.create(1, 2, content="...", private=True)`, `messages.create_with_attachments(...)`, e os outros métodos que aceitam `Mapping[str, Any]`. Todos os recursos usam o transporte centralizado; nenhuma publicação é repetida automaticamente após timeout. A confirmação HTTP não constitui comprovante de entrega ao WhatsApp.
+
+## Mensagem de voz (áudio OGG)
+
+```python
+cw.messages.send_media(
+    1, 2,
+    MediaMessage(
+        attachments=[Attachment.from_path("gravacao.ogg", mime_type=MimeType.OGG)],
+        is_voice_message=True,
+        private=False,
+    ),
+)
+```
+
+O Chatwoot aceita `is_voice_message` e marca o anexo como voz. A biblioteca exige um único arquivo `audio/ogg` para esse modo; o formato final da entrega depende da integração do canal. O flag é omitido para áudio comum. `send_image/audio/video/document` continuam disponíveis por compatibilidade, mas a interface preferencial para mídia é `send_media()`.
+
+## Status de conversa com enumeração
+
+```python
+cw.conversations.set_status(1, 2, ConversationStatus.PENDING)
+cw.conversations.set_status(1, 2, ConversationStatus.RESOLVED)
+```
+
+Valores: `OPEN`, `PENDING`, `RESOLVED` e `SNOOZED`. A forma legada `set_status(1, 2, "pending")` continua suportada. Para `SNOOZED` pode-se definir `snoozed_until` em segundos Unix. A semântica de handoff ao mudar de pending para open depende das regras do Chatwoot e do ator autenticado.
+
+## Etiquetas do catálogo e associação na conversa
+
+Criar uma etiqueta no catálogo da conta é diferente de associá-la à conversa:
+
+```python
+etiqueta = LabelDefinition(
+    title="aguardando-laudo",
+    color="#224466",
+    description="Documentação solicitada",
+)
+cw.labels.create_label(1, etiqueta)
+
+# Preserva as etiquetas atuais e acrescenta uma nova.
+cw.conversation_labels.add(1, 2, "aguardando-laudo")
+
+# Acrescenta várias, sem duplicar:
+cw.conversation_labels.add(1, 2, ["hermes-ativo", "aguardando-laudo"])
+
+# Remove uma etiqueta preservando as demais:
+cw.conversation_labels.remove(1, 2, "hermes-ativo")
+
+# API legada: substituição completa e deliberada da lista
+cw.conversation_labels.replace(1, 2, ["aguardando-laudo"])
+```
+
+`add` e `remove` executam GET das etiquetas existentes e POST da lista consolidada apenas quando necessário. A resposta GET deve conter `{"payload": ["etiqueta", ...]}`; se estiver inválida, a biblioteca falha sem executar substituição potencialmente destrutiva. Essas operações não são atômicas: para várias automações alterando a mesma conversa, serializar no executor/worker por `account_id` e `conversation_id` é necessário para evitar lost updates. `cw.labels.create_label` não cria associações por conta própria; não existe criação automática de etiquetas desconhecidas ao chamar `add`.

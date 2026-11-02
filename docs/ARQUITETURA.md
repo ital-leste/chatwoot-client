@@ -9,11 +9,14 @@ Biblioteca Python independente para a Application API Chatwoot 4.19.0. O consumi
 - `chatwoot_client/__init__.py`: exporta CWClient, models, enums e exceções oficialmente suportados.
 - `client.py`: composição dos recursos, autenticação, execução HTTP centralizada em `_request` e verbos privados `_get/_post/_put/_patch/_delete`, retorno e erros. `_solicitar_json` permanece como adaptador retrocompatível.
 - `transport.py`: envio HTTP efetivo, JSON, multipart e formulário. Os recursos não acessam httpx diretamente.
-- `models/`: contratos imutáveis e validação estrutural, sem leitura de arquivos nem operações de rede no construtor.
-- `enums/`: valores oficiais de mensagem, visibilidade, conteúdo e MIME comuns; MIME não é lista exaustiva.
+- `models/`: contratos imutáveis de mensagens, anexos e definição de etiqueta da conta, com validação estrutural; sem arquivo/rede no construtor.
+- `enums/`: valores oficiais de tipo de mensagem, status de conversa, conteúdo e MIME comuns; `private: bool` é preferido. `MessageVisibility` permanece por compatibilidade.
 - `attachment_resolver.py`: preparação de caminhos, fluxos, bytes e downloads HTTPS; controla limites e fechamento de arquivos.
 - `message_payload.py`: mapeamento de contratos tipados para campos da Application API.
-- `messages.py`: operações semânticas send_text/send_media/send_image/send_audio/send_video/send_document, delegando ao mesmo endpoint.
+- `messages.py`: operações principais `send_text` e `send_media` pelo mesmo endpoint; atalhos específicos de mídia preservados por compatibilidade. `is_voice_message` diferencia voz de áudio comum.
+- `conversations.py`: `set_status` aceita `ConversationStatus` e strings antigas.
+- `labels.py`: `create_label` aceita `LabelDefinition`; `create` anterior preservado.
+- `conversation_labels.py`: `add/remove` fazem GET + consolidação + POST, `replace` preserva semântica integral.
 - Demais recursos: operações específicas sem responsabilidade por execução HTTP, autorização de negócio ou runtime Hermes.
 
 ## Contratos públicos e compatibilidade
@@ -31,3 +34,11 @@ URLs de anexos exigem HTTPS, destino DNS global, porta 443, sem credenciais e se
 ## Publicação
 
 Desenvolvimento em homolog. Main preservada até homologação real, regressão e aprovação da mudança.
+
+## Concorrência na associação de etiquetas
+
+O endpoint de etiquetas da conversa é uma substituição completa, não um append atômico. `add/remove` são operações de conveniência read-modify-write e podem sofrer lost update se agentes e usuários alterarem etiquetas simultaneamente. O pacote não introduz bloqueios distribuídos nem garante transação entre GET e POST. O executor que já controla lotes por conversa deve serializar atualizações de etiquetas e, quando crítico, conferir o estado final. Etiquetas criadas no catálogo e etiquetas associadas à conversa têm recursos separados.
+
+## Compatibilidade de mensagens
+
+`private` é o campo booleano da API. `visibility=MessageVisibility.PRIVATE` segue aceito nas dataclasses para preservar código criado na primeira evolução; interfaces novas devem preferir `private=True`. Mensagens de voz utilizam `is_voice_message` no multipart, parâmetro observado no código-fonte 4.19.0 e não presente na especificação OpenAPI consultada. Validar entrega final por canal.
