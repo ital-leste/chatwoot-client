@@ -1,0 +1,178 @@
+"""Transporte HTTP comum e ponto de composição dos recursos do Chatwoot."""
+
+from __future__ import annotations
+
+import math
+from collections.abc import Mapping
+from typing import Any
+from urllib.parse import urlsplit
+
+import httpx
+
+from .account import AccountResource
+from .agents import AgentsResource
+from .contacts import ContactsResource
+from .conversations import ConversationsResource
+from .conversation_assignments import ConversationAssignmentsResource
+from .conversation_labels import ConversationLabelsResource
+from .inboxes import InboxesResource
+from .labels import LabelsResource
+from .messages import MessagesResource
+from .profile import ProfileResource
+
+
+class ErroConfiguracaoChatwoot(ValueError):
+    """Configuração ausente ou inválida para a API do Chatwoot."""
+
+
+class ErroAPIChatwoot(RuntimeError):
+    """Falha de transporte, HTTP ou formato na API do Chatwoot."""
+
+    def __init__(
+        self,
+        mensagem: str,
+        *,
+        caminho: str,
+        status_http: int | None = None,
+    ) -> None:
+        super().__init__(mensagem)
+        self.caminho = caminho
+        self.status_http = status_http
+
+
+class CWClient:
+    """Client HTTP da API Chatwoot com respostas JSON sem modelos externos.
+
+    ``api_token`` é o token de acesso pessoal do perfil de usuário.
+    O endereço e o token são fornecidos pelo código que instancia o client.
+
+    As operações por recurso ficam em módulos separados. O client expõe
+    consultas e escritas explícitas, preservando integralmente o JSON da API.
+    """
+
+    def __init__(self, base_url: str, api_token: str, timeout: float = 30.0) -> None:
+        base_url = base_url.strip().rstrip("/")
+        partes_url = urlsplit(base_url)
+        if (
+            partes_url.scheme not in {"http", "https"}
+            or not partes_url.netloc
+            or partes_url.username is not None
+            or partes_url.password is not None
+            or partes_url.query
+            or partes_url.fragment
+        ):
+            raise ErroConfiguracaoChatwoot(
+                "base_url deve ser uma URL http(s) sem credenciais, "
+                "query ou fragmento."
+            )
+        if not api_token or not api_token.strip():
+            raise ErroConfiguracaoChatwoot("api_token é obrigatório.")
+        if not math.isfinite(timeout) or timeout <= 0:
+            raise ErroConfiguracaoChatwoot(
+                "timeout deve ser um número positivo."
+            )
+        self._base_path = partes_url.path.strip("/")
+        base_url_raiz = f"{partes_url.scheme}://{partes_url.netloc}/"
+        self._http = httpx.Client(
+            base_url=base_url_raiz,
+            headers={"Authorization": f"Bearer {api_token.strip()}"},
+            timeout=timeout,
+        )
+
+        self.account: AccountResource = AccountResource(self)
+        self.agents: AgentsResource = AgentsResource(self)
+        self.contacts: ContactsResource = ContactsResource(self)
+        self.inboxes: InboxesResource = InboxesResource(self)
+        self.profile: ProfileResource = ProfileResource(self)
+        self.conversations: ConversationsResource = ConversationsResource(self)
+        self.conversation_labels: ConversationLabelsResource = ConversationLabelsResource(self)
+        self.conversation_assignments: ConversationAssignmentsResource = ConversationAssignmentsResource(self)
+        self.labels: LabelsResource = LabelsResource(self)
+        self.messages: MessagesResource = MessagesResource(self)
+
+    @staticmethod
+    def _validar_id(valor: int, nome: str) -> None:
+        if isinstance(valor, bool) or not isinstance(valor, int) or valor <= 0:
+            raise ValueError(f"{nome} deve ser um inteiro positivo.")
+
+    def _solicitar_json(
+        self,
+        metodo: str,
+        caminho: str,
+        *,
+        dados: Mapping[str, Any] | None = None,
+        parametros: Mapping[str, Any] | None = None,
+    ) -> Any:
+        caminho_relativo = caminho.lstrip("/")
+        if self._base_path:
+            caminho_relativo = f"{self._base_path}/{caminho_relativo}"
+
+        try:
+            resposta = self._http.request(
+                metodo,
+                caminho_relativo,
+                json=dict(dados) if dados is not None else None,
+                params=parametros,
+            )
+        except httpx.RequestError:
+            raise ErroAPIChatwoot(
+                f"Falha de conexão ao chamar {metodo} {caminho}.",
+                caminho=caminho,
+            ) from None
+
+        try:
+            resposta.raise_for_status()
+        except httpx.HTTPStatusError as erro:
+            status = erro.response.status_code
+            raise ErroAPIChatwoot(
+                f"Chatwoot respondeu HTTP {status} para {metodo} {caminho}.",
+                caminho=caminho,
+                status_http=status,
+            ) from None
+
+        try:
+            return resposta.json()
+        except ValueError:
+            raise ErroAPIChatwoot(
+                f"Chatwoot retornou JSON inválido para {metodo} {caminho}.",
+                caminho=caminho,
+                status_http=resposta.status_code,
+            ) from None
+
+    @staticmethod
+    def _exigir_objeto(
+        resposta: Any,
+        *,
+        operacao: str,
+        caminho: str,
+    ) -> dict[str, Any]:
+        if not isinstance(resposta, dict):
+            raise ErroAPIChatwoot(
+                f"Resposta inesperada ao {operacao}: era esperado um objeto JSON.",
+                caminho=caminho,
+            )
+        return resposta
+
+    @staticmethod
+    def _exigir_lista(
+        resposta: Any,
+        *,
+        operacao: str,
+        caminho: str,
+    ) -> list[Any]:
+        if not isinstance(resposta, list):
+            raise ErroAPIChatwoot(
+                f"Resposta inesperada ao {operacao}: era esperada uma lista JSON.",
+                caminho=caminho,
+            )
+        return resposta
+
+    def close(self) -> None:
+        """Libera a sessão HTTP mantida pelo cliente."""
+        self._http.close()
+
+    def __enter__(self) -> "CWClient":
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self.close()
