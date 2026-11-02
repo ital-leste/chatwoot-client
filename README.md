@@ -16,7 +16,7 @@ with CWClient(base_url="https://chatwoot.example", api_token="seu-token") as cw:
 
 O construtor recebe URL, token e timeout explicitamente. O pacote não carrega `.env`, não gerencia sessões Hermes, não recebe webhooks e não persiste lotes. O aplicativo consumidor decide quando uma ação Chatwoot é autorizada.
 
-Os recursos implementados são `account`, `agents`, `contacts`, `inboxes`, `profile`, `conversations`, `messages`, `labels`, `conversation_labels` e `conversation_assignments`. Módulos reservados sem métodos ainda permanecem no pacote.
+Os recursos foram ampliados para as 22 categorias documentadas da Application API v4.19.0. Os 16 métodos originalmente extraídos permanecem com suas assinaturas; consulte a matriz completa na documentação para conhecer os 108 métodos adicionais.
 
 ## Instalação e testes
 
@@ -32,7 +32,7 @@ Este repositório é privado. Aplicações externas devem utilizá-lo como depen
 ## Compatibilidade
 
 - Preservados: `CWClient`, `ErroAPIChatwoot`, `ErroConfiguracaoChatwoot`, recursos, assinaturas, endpoints e retornos JSON existentes.
-- `messages.create()` aceita texto JSON; não implementa multipart.
+- `messages.create()` preserva a publicação de texto JSON. `messages.create_with_attachments()` adiciona multipart, e `profile.update_multipart()` suporta atualização de avatar.
 - `conversation_labels.replace()` substitui todas as etiquetas.
 - `conversation_assignments.assign()` exige exatamente um `assignee_id` ou `team_id`.
 - Não existe retry automático para POST; um timeout pode deixar resultado indeterminado.
