@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+from .models import LabelDefinition
+
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -51,6 +53,17 @@ class LabelsResource:
         resposta = self._client._solicitar_json("POST", caminho, dados=dados)
         return self._client._exigir_objeto(
             resposta, operacao="criar etiqueta na conta", caminho=caminho
+        )
+
+    def create_label(
+        self, account_id: int, label: LabelDefinition,
+    ) -> dict[str, Any]:
+        """Criação tipada no catálogo da conta; delega ao método histórico."""
+        if not isinstance(label, LabelDefinition):
+            raise TypeError("label deve ser LabelDefinition.")
+        return self.create(
+            account_id, title=label.title, color=label.color,
+            description=label.description, show_on_sidebar=label.show_on_sidebar,
         )
 
     def get(self, account_id: int, label_id: int, *, parametros: Mapping[str, Any] | None = None) -> Any:

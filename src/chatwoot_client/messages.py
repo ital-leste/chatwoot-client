@@ -199,7 +199,7 @@ class MessagesResource:
             account_id, conversation_id,
             MediaMessage(
                 attachments=(attachment,), caption=caption,
-                visibility=visibility, message_type=message_type,
+                private=visibility.is_private, message_type=message_type,
             ),
             max_bytes=max_bytes, url_timeout=url_timeout,
             allowed_hosts=allowed_hosts,

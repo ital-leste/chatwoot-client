@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+from .enums import ConversationStatus
+
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -74,20 +76,20 @@ class ConversationsResource:
         self,
         account_id: int,
         conversation_id: int,
-        status: str,
+        status: ConversationStatus | str,
         *,
         snoozed_until: int | None = None,
     ) -> dict[str, Any]:
         """POST toggle_status com estado explícito (não alternância implícita)."""
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(conversation_id, "conversation_id")
-        if status not in {"open", "pending", "resolved", "snoozed"}:
-            raise ValueError("status deve ser open, pending, resolved ou snoozed.")
+        if not isinstance(status, str) or status not in ConversationStatus._value2member_map_:
+            raise ValueError("status deve ser ConversationStatus ou uma string oficial.")
         if snoozed_until is not None:
             if status != "snoozed":
                 raise ValueError("snoozed_until só é válido quando status='snoozed'.")
             self._client._validar_id(snoozed_until, "snoozed_until")
-        dados: dict[str, Any] = {"status": status}
+        dados: dict[str, Any] = {"status": str(status)}
         if snoozed_until is not None:
             dados["snoozed_until"] = snoozed_until
         caminho = f"api/v1/accounts/{account_id}/conversations/{conversation_id}/toggle_status"
