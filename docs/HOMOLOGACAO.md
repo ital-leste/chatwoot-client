@@ -18,8 +18,8 @@ Os testes usam `httpx.MockTransport` e não podem enviar mensagens reais, exclui
 4. Criar `LabelDefinition` via `labels.create()`; verificar campos, retorno JSON e falhas antes do envio.
 5. Incluir e remover etiquetas de conversas, sem duplicar nem apagar outras; em erro no GET, não disparar POST. Testar concorrência de alterações no executor.
 6. Listar Canned Responses com e sem `search`, sempre por GET, conferindo o array JSON original e a filtragem por atalho/conteúdo.
-7. Criar e atualizar parcialmente respostas rápidas com **um** `CannedResponse`, exigindo campos por operação; rejeitar `Mapping` nessas entradas.
-8. Confirmar que `list_typed`, `CannedResponseCreate`, `CannedResponseUpdate`, `messages.create`, `messages.create_with_attachments`, `send_document`, `labels.create_label` e `MessageVisibility` não são interfaces oficiais.
+7. Criar e atualizar parcialmente respostas rápidas com parâmetros nomeados `short_code`/`content`, exigindo os campos necessários por operação; rejeitar entrada por `Mapping` e campos vazios antes do HTTP.
+8. Confirmar que `CannedResponse`, `list_typed`, `CannedResponseCreate`, `CannedResponseUpdate`, `messages.create`, `messages.create_with_attachments`, `send_document`, `labels.create_label` e `MessageVisibility` não são interfaces públicas oficiais.
 9. Testar HTTP 403/422/503, JSON inválido e corpo vazio, sem retry automático de escrita; confirmar que campos extras de retorno não são descartados.
 10. Confirmar que os recursos sem contratos específicos continuam podendo utilizar payloads da API, mantendo cobertura dos verbos/rotas da matriz.
 

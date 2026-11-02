@@ -8,7 +8,7 @@ Instalação: `python -m pip install -e ".[test]"`. Validação: `python -m pyte
 from chatwoot_client import (
     CWClient, TextMessage, MediaMessage, Attachment,
     MimeType, MessageType, ConversationStatus,
-    LabelDefinition, CannedResponse, ErroAPIChatwoot, ErroAnexoChatwoot,
+    LabelDefinition, ErroAPIChatwoot, ErroAnexoChatwoot,
 )
 ```
 
@@ -112,36 +112,35 @@ cw.conversation_labels.replace(1, 2, ["aguardando-laudo"])
 
 `replace()` substitui toda a lista. `add()` e `remove()` leem a lista atual e escrevem o conjunto consolidado, preservando as demais etiquetas, mas **não são operações atômicas**. O executor deve serializar operações concorrentes por conversa. A criação de uma etiqueta no catálogo não a associa automaticamente à conversa. Outros métodos de etiqueta que ainda não possuem contrato (como atualização parcial) permanecem com os parâmetros da API.
 
-## Respostas rápidas — contrato único de entrada
+## Respostas rápidas — parâmetros nomeados
 
 ```python
-from chatwoot_client import CannedResponse
-
 with CWClient(URL, TOKEN) as cw:
-    # GET sem filtro: todas as respostas rápidas da conta.
+    # GET: sem filtro retorna todas; com filtro busca no servidor.
     todas: list[dict] = cw.canned_responses.list(1)
-
-    # GET com search: filtros por short_code e content no servidor.
     filtradas: list[dict] = cw.canned_responses.list(1, search="gnv")
 
-    # POST e PATCH exigem o mesmo contrato imutável.
+    # POST: short_code e content obrigatórios.
     criada: dict = cw.canned_responses.create(
-        1, CannedResponse(short_code="gnv_periodica", content="Texto padrão.")
-    )
-    atualizada: dict = cw.canned_responses.update(
-        1, criada["id"], CannedResponse(content="Texto revisado.")
+        1, short_code="gnv_periodica", content="Texto padrão."
     )
 
-    # DELETE por ID. Não existe restauração automática pela API.
+    # PATCH: pelo menos um campo obrigatório, sem alterar o outro.
+    atualizada: dict = cw.canned_responses.update(
+        1, criada["id"], content="Texto revisado."
+    )
+    cw.canned_responses.update(1, criada["id"], short_code="gnv_periodica_2")
+
+    # DELETE por ID; não há restauração automática pela API.
     cw.canned_responses.delete(1, criada["id"])
 ```
 
-`CannedResponse` contém apenas `short_code` e `content` opcionais; sua dataclass é `frozen=True`. `create()` exige os dois campos e `update()` exige ao menos um. O serializador omite campos `None` e nunca envia metadados de saída. `list()` devolve o array de objetos JSON do Chatwoot (sem envelope `payload`). Não há `list_typed()`, `CannedResponseCreate` nem `CannedResponseUpdate`.
+`create()` exige `short_code: str` e `content: str` não vazios. `update()` aceita os mesmos campos opcionalmente e exige ao menos um presente. A validação mínima ocorre antes de qualquer chamada HTTP; regras como a unicidade do atalho pertencem ao Chatwoot. Não há dataclass `CannedResponse` nem entrada alternativa por `Mapping`.
 
-O dashboard aplica `picoSearch` no frontend; o cliente Python faz uma única chamada GET com `search` e respeita a ordenação do servidor. Variáveis Liquid nos conteúdos não são resolvidas por este cliente.
+`list()` devolve um array JSON com os campos originais do Chatwoot (sem envelope `payload`). O parâmetro `search` é enviado em um único GET e filtra por `short_code` ou `content` no servidor, sem reproduzir a busca dinâmica `picoSearch` do dashboard. Variáveis Liquid não são resolvidas por este cliente.
 
 ## Restrições de segurança
 
-Contratos tipados são exigidos nas operações modeladas. O consumidor não deve fornecer `dict` onde existe `TextMessage`, `MediaMessage`, `LabelDefinition` ou `CannedResponse`. Os métodos de recursos ainda não modelados continuam espelhando a API com `Mapping`.
+A interface de entrada usa parâmetros nomeados tipados em operações simples e contratos de domínio quando há estrutura ou validações que os justificam. Não forneça dicionários onde a operação exige `TextMessage`, `MediaMessage` ou `LabelDefinition`. Recursos ainda não modelados continuam espelhando a API com `Mapping`.
 
 Erros de conexão, HTTP ou JSON inválido geram `ErroAPIChatwoot`, sem vazar dados de resposta. A confirmação da API não representa confirmação de entrega WhatsApp. Não há retry implícito de POST/PATCH/DELETE.

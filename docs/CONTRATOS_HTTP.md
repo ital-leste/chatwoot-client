@@ -10,7 +10,7 @@ Documentação-fonte: https://github.com/chatwoot/chatwoot/blob/v4.19.0/swagger/
 - Erros: ErroAPIChatwoot informa caminho e status_http, mas nunca o corpo completo nem o token.
 - Paginação: sem agregação automática; envelopes, contadores e cursores permanecem intactos.
 - Retry: ausente em escritas. Um timeout após POST pode significar resultado indeterminado.
-- Entradas: contratos tipados onde já existem modelos; recursos sem contratos recebem os argumentos documentados pela API.
+- Entradas: parâmetros Python nomeados e tipados para casos simples, contratos imutáveis para estruturas mais complexas; recursos sem contratos específicos recebem os argumentos documentados pela API.
 - Saídas: JSON nativo do Chatwoot, com verificação de formato quando o endpoint o define. Nenhum DTO de saída obrigatório.
 
 A biblioteca não traduz respostas da API para DTOs obrigatórios. O servidor continua responsável por verificar permissões e validade de parâmetros específicos.

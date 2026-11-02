@@ -4,11 +4,11 @@ Cliente Python independente para a **Application API do Chatwoot 4.19.0**. A bib
 
 ## Regra de arquitetura
 
-**Contratos tipados nas entradas já modeladas, resposta JSON nativa da API.** Recursos ainda não modelados podem receber `Mapping[str, Any]`; operações modeladas rejeitam dicionários e assinaturas alternativas. O pacote não impõe dataclasses aos retornos do Chatwoot, mas verifica erros HTTP/JSON e formatos estruturais conhecidos.
+**Entradas tipadas conforme a complexidade e saída JSON nativa da API.** Operações simples recebem argumentos nomeados com tipos Python; estruturas com regras próprias utilizam dataclasses. Recursos ainda não modelados podem receber `Mapping[str, Any]`. O pacote verifica erros HTTP/JSON e formatos estruturais conhecidos, sem criar dataclasses para retornos.
 
 ```python
 from chatwoot_client import (
-    CWClient, CannedResponse, TextMessage, MediaMessage,
+    CWClient, TextMessage, MediaMessage,
     Attachment, MimeType, LabelDefinition, ConversationStatus,
 )
 
@@ -30,14 +30,14 @@ with CWClient("https://chatwoot.exemplo", "TOKEN") as cw:
     cw.labels.create(1, LabelDefinition("aguardando-laudo", "#224466"))
     cw.conversation_labels.add(1, 2, "aguardando-laudo")
 
-    # Canned Responses: um único contrato de entrada e JSON nativo de saída
-    criada = cw.canned_responses.create(1, CannedResponse(
-        short_code="gnv", content="Informações sobre inspeção GNV."
-    ))
+    # Canned Responses: parâmetros nomeados e JSON nativo de saída
+    criada = cw.canned_responses.create(
+        1, short_code="gnv", content="Informações sobre inspeção GNV."
+    )
     todas = cw.canned_responses.list(1)
     filtradas = cw.canned_responses.list(1, search="gnv")
     atualizada = cw.canned_responses.update(
-        1, criada["id"], CannedResponse(content="Texto revisado.")
+        1, criada["id"], content="Texto revisado."
     )
 ```
 
@@ -64,4 +64,4 @@ O transporte não repete automaticamente escritas após timeout. Resposta HTTP b
 - [Compatibilidade](docs/COMPATIBILIDADE.md)
 - [Homologação](docs/HOMOLOGACAO.md)
 
-A matriz mantém cobertura dos 124 pares verbo/rota mapeados, não o compromisso de preservar todas as antigas assinaturas Python. Alterações deinterfaces anteriores foram feitas ainda em homologação.
+A matriz mantém cobertura dos 124 pares verbo/rota mapeados, não o compromisso de preservar todas as antigas assinaturas Python. Alterações de interfaces anteriores foram feitas ainda em homologação.

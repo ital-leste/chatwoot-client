@@ -1,19 +1,23 @@
-"""Operações tipadas de entrada e respostas JSON nativas para Canned Responses."""
+"""Operações de Canned Responses com parâmetros tipados e JSON nativo."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
-
-from .models import CannedResponse
 
 if TYPE_CHECKING:
     from .client import CWClient
 
 
 class CannedResponsesResource:
-    """CRUD de respostas rápidas da conta, sem modelos de saída."""
+    """CRUD de respostas rápidas da conta, sem contratos de domínio extras."""
 
     def __init__(self, client: CWClient) -> None:
         self._client = client
+
+    @staticmethod
+    def _validar_texto(valor: str, nome: str) -> str:
+        if not isinstance(valor, str) or not valor.strip():
+            raise ValueError(f"{nome} deve ser texto não vazio.")
+        return valor
 
     @staticmethod
     def _validar_search(search: str | None) -> dict[str, str] | None:
@@ -24,7 +28,7 @@ class CannedResponsesResource:
         return {"search": search.strip()}
 
     def list(self, account_id: int, *, search: str | None = None) -> list[dict[str, Any]]:
-        """GET: sem search retorna tudo, com search filtra no Chatwoot."""
+        """GET: sem search retorna tudo; com search filtra no servidor."""
         self._client._validar_id(account_id, "account_id")
         consulta = self._validar_search(search)
         caminho = f"api/v1/accounts/{account_id}/canned_responses"
@@ -40,28 +44,37 @@ class CannedResponsesResource:
             )
         return lista
 
-    def create(self, account_id: int, response: CannedResponse) -> dict[str, Any]:
-        """POST: os dois campos são obrigatórios."""
+    def create(
+        self, account_id: int, *, short_code: str, content: str,
+    ) -> dict[str, Any]:
+        """POST: atalho e conteúdo obrigatórios, com retorno JSON original."""
         self._client._validar_id(account_id, "account_id")
-        if not isinstance(response, CannedResponse):
-            raise TypeError("response deve ser CannedResponse.")
-        if response.short_code is None or response.content is None:
-            raise ValueError("Criação requer short_code e content.")
+        dados = {
+            "short_code": self._validar_texto(short_code, "short_code"),
+            "content": self._validar_texto(content, "content"),
+        }
         caminho = f"api/v1/accounts/{account_id}/canned_responses"
-        resultado = self._client._post(caminho, dados=response.to_payload())
+        resultado = self._client._post(caminho, dados=dados)
         return self._client._exigir_objeto(
             resultado, operacao="criar resposta rápida", caminho=caminho
         )
 
     def update(
-        self, account_id: int, canned_response_id: int, response: CannedResponse,
+        self,
+        account_id: int,
+        canned_response_id: int,
+        *,
+        short_code: str | None = None,
+        content: str | None = None,
     ) -> dict[str, Any]:
-        """PATCH: apenas os campos informados, sem sobrescrever os demais."""
+        """PATCH parcial: envia exclusivamente os campos informados."""
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(canned_response_id, "canned_response_id")
-        if not isinstance(response, CannedResponse):
-            raise TypeError("response deve ser CannedResponse.")
-        dados = response.to_payload()
+        dados: dict[str, str] = {}
+        if short_code is not None:
+            dados["short_code"] = self._validar_texto(short_code, "short_code")
+        if content is not None:
+            dados["content"] = self._validar_texto(content, "content")
         if not dados:
             raise ValueError("Atualização requer short_code e/ou content.")
         caminho = f"api/v1/accounts/{account_id}/canned_responses/{canned_response_id}"
@@ -71,7 +84,7 @@ class CannedResponsesResource:
         )
 
     def delete(self, account_id: int, canned_response_id: int) -> Any:
-        """DELETE: devolve corpo JSON nativo ou None caso vazio."""
+        """DELETE: JSON nativo ou None quando o sucesso não possui corpo."""
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(canned_response_id, "canned_response_id")
         caminho = f"api/v1/accounts/{account_id}/canned_responses/{canned_response_id}"

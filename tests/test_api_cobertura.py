@@ -1,7 +1,7 @@
 """Contratos HTTP de 108 operações novas (OpenAPI Chatwoot 4.19.0)."""
 import httpx
 import pytest
-from chatwoot_client import CWClient, CannedResponse
+from chatwoot_client import CWClient
 
 CASOS = [
   [
@@ -137,9 +137,7 @@ CASOS = [
   [
     "canned_responses",
     "list",
-    [
-      1
-    ],
+    [1],
     {},
     "GET",
     "/api/v1/accounts/1/canned_responses",
@@ -148,11 +146,8 @@ CASOS = [
   [
     "canned_responses",
     "create",
-    [
-      1,
-      CannedResponse(short_code="teste", content="Texto de teste")
-    ],
-    {},
+    [1],
+    {"short_code": "teste", "content": "Texto de teste"},
     "POST",
     "/api/v1/accounts/1/canned_responses",
     True
@@ -160,12 +155,8 @@ CASOS = [
   [
     "canned_responses",
     "update",
-    [
-      1,
-      1,
-      CannedResponse(short_code="teste", content="Texto de teste")
-    ],
-    {},
+    [1, 1],
+    {"content": "Texto atualizado"},
     "PATCH",
     "/api/v1/accounts/1/canned_responses/1",
     True
@@ -173,10 +164,7 @@ CASOS = [
   [
     "canned_responses",
     "delete",
-    [
-      1,
-      1
-    ],
+    [1, 1],
     {},
     "DELETE",
     "/api/v1/accounts/1/canned_responses/1",
