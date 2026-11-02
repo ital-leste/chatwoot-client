@@ -45,7 +45,7 @@ def test_prefixo_reverso_e_multipart():
         resposta = cw.messages.send_media(
             1, 2, MediaMessage(
                 attachments=[
-                    Attachment(b"primeiro", MimeType.TXT, "a.txt"),
+                    Attachment(b"primeiro", MimeType.TEXT, "a.txt"),
                     Attachment(b"%PDF", MimeType.PDF, "b.pdf"),
                 ],
                 caption="Nota", private=True,
@@ -73,6 +73,6 @@ def test_timeout_nao_repete_envio():
         raise httpx.ReadTimeout("timeout", request=req)
     with cliente(handler) as cw, pytest.raises(ErroAPIChatwoot):
         cw.messages.send_media(
-            1, 2, MediaMessage((Attachment(b"ok", MimeType.TXT, "a.txt"),))
+            1, 2, MediaMessage((Attachment(b"ok", MimeType.TEXT, "a.txt"),))
         )
     assert len(chamadas) == 1

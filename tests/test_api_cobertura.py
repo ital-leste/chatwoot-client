@@ -1418,7 +1418,7 @@ def test_contrato_operacao(recurso,nome,args,kwargs,verbo,caminho,tem_corpo):
     chamadas = []
     def responder(req):
         chamadas.append(req)
-        return httpx.Response(200, json={"ok": True})
+        return httpx.Response(200, json=[] if recurso == "canned_responses" and nome == "list" else {"ok": True})
     with CWClient("https://chatwoot.exemplo", "token") as cw:
         headers = dict(cw._http.headers)
         cw._http.close()
@@ -1428,7 +1428,7 @@ def test_contrato_operacao(recurso,nome,args,kwargs,verbo,caminho,tem_corpo):
             transport=httpx.MockTransport(responder),
         )
         resultado = getattr(getattr(cw,recurso),nome)(*args,**kwargs)
-    assert resultado == {"ok": True}
+    assert resultado == ([] if recurso == "canned_responses" and nome == "list" else {"ok": True})
     assert len(chamadas) == 1
     req = chamadas[0]
     assert req.method == verbo

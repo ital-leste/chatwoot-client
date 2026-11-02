@@ -1,195 +1,198 @@
-"""Regressão: listagem integral/filtrada e contratos tipados de Canned Responses."""
+"""Contratos de entrada tipados e retornos nativos para respostas rápidas Chatwoot."""
 from __future__ import annotations
+
+import json
+from dataclasses import FrozenInstanceError
 
 import httpx
 import pytest
 
-from chatwoot_client import (
-    CWClient, CannedResponse, CannedResponseCreate, CannedResponseUpdate,
-    ErroAPIChatwoot,
-)
+from chatwoot_client import CWClient, CannedResponse, ErroAPIChatwoot
 
 
-def _registro(*, id=7, account_id=1, short_code="gnv", content="Inspeção GNV"):
-    return {
-        "id": id,
-        "account_id": account_id,
-        "short_code": short_code,
-        "content": content,
+def _registro(**alteracoes):
+    dados = {
+        "id": 7,
+        "account_id": 1,
+        "short_code": "gnv",
+        "content": "Inspeção GNV",
         "created_at": "2026-11-02T10:00:00Z",
         "updated_at": "2026-11-02T10:30:00Z",
+        "extra_provedor": {"valor": 42},
     }
+    dados.update(alteracoes)
+    return dados
 
 
-def _client(requests, handler=None):
-    def responder(request):
-        requests.append(request)
-        if handler:
-            return handler(request)
-        if request.method == "GET":
+def _client(chamadas, *, handler=None):
+    def responder(req):
+        chamadas.append(req)
+        if handler is not None:
+            return handler(req)
+        if req.method == "GET":
             return httpx.Response(200, json=[_registro()])
-        if request.method == "DELETE":
+        if req.method == "DELETE":
             return httpx.Response(200, content=b"")
         return httpx.Response(200, json=_registro())
 
-    client = CWClient("https://chatwoot.exemplo", "token")
-    headers = dict(client._http.headers)
-    client._http.close()
-    client._http = httpx.Client(
+    cw = CWClient("https://chatwoot.exemplo", "token")
+    headers = dict(cw._http.headers)
+    cw._http.close()
+    cw._http = httpx.Client(
         base_url="https://chatwoot.exemplo/",
         headers=headers,
         transport=httpx.MockTransport(responder),
     )
-    return client
+    return cw
 
 
-def test_list_sem_filtro_usa_get_unico_e_preserva_json():
-    requests = []
-    with _client(requests) as cw:
-        result = cw.canned_responses.list(1)
-    assert result == [_registro()]
-    assert len(requests) == 1
-    assert requests[0].method == "GET"
-    assert requests[0].url.path == "/api/v1/accounts/1/canned_responses"
-    assert requests[0].url.query == b""
+def test_listagem_completa_get_sem_query_e_json_original():
+    chamadas = []
+    with _client(chamadas) as cw:
+        resposta = cw.canned_responses.list(1)
+    assert resposta == [_registro()]
+    assert type(resposta[0]) is dict
+    assert resposta[0]["extra_provedor"] == {"valor": 42}
+    assert len(chamadas) == 1
+    assert chamadas[0].method == "GET"
+    assert chamadas[0].url.path == "/api/v1/accounts/1/canned_responses"
+    assert chamadas[0].url.query == b""
 
 
-def test_list_com_search_usa_mesmo_get_sem_post():
-    requests = []
-    with _client(requests) as cw:
-        result = cw.canned_responses.list(1, search="gnv")
-    assert result == [_registro()]
-    assert len(requests) == 1
-    assert requests[0].method == "GET"
-    assert requests[0].url.params["search"] == "gnv"
+def test_listagem_com_filtro_mantem_get_e_servidor_define_resultados():
+    chamadas = []
+    with _client(chamadas) as cw:
+        resposta = cw.canned_responses.list(1, search=" gnv ")
+    assert resposta == [_registro()]
+    assert len(chamadas) == 1
+    assert chamadas[0].method == "GET"
+    assert chamadas[0].url.params["search"] == "gnv"
 
 
-def test_search_antigo_via_parametros_continua_funcionando():
-    requests = []
-    with _client(requests) as cw:
-        cw.canned_responses.list(1, parametros={"search": "periodica"})
-    assert requests[0].url.params["search"] == "periodica"
+def test_listagem_vazia_retorna_lista_vazia():
+    chamadas = []
+    with _client(chamadas, handler=lambda req: httpx.Response(200, json=[])) as cw:
+        assert cw.canned_responses.list(1, search="sem_resultado") == []
 
 
-def test_lista_tipadas_inteira_e_filtrada():
-    requests = []
-    with _client(requests) as cw:
-        all_items = cw.canned_responses.list_typed(1)
-        filtered = cw.canned_responses.list_typed(1, search="GNv")
-    assert len(requests) == 2
-    assert all(isinstance(item, CannedResponse) for item in all_items + filtered)
-    assert all_items[0].short_code == "gnv"
-    assert all_items[0].updated_at == "2026-11-02T10:30:00Z"
-    assert requests[1].url.params["search"] == "GNv"
-    assert requests[0].method == requests[1].method == "GET"
+@pytest.mark.parametrize("search", ["", "   ", "\0unsafe", 12, False, ["gnv"]])
+def test_filtro_invalido_bloqueia_http(search):
+    chamadas = []
+    with _client(chamadas) as cw, pytest.raises(ValueError):
+        cw.canned_responses.list(1, search=search)
+    assert not chamadas
 
 
-def test_lista_vazia_tipadas():
-    requests = []
-    with _client(requests, lambda req: httpx.Response(200, json=[])) as cw:
-        assert cw.canned_responses.list_typed(1, search="sem_match") == []
-
-
-@pytest.mark.parametrize("invalid", [
-    "", " ", "\x00texto", 33, False,
-])
-def test_search_invalido_nao_dispara_http(invalid):
-    requests = []
-    with _client(requests) as cw, pytest.raises(ValueError):
-        cw.canned_responses.list(1, search=invalid)
-    assert not requests
-
-
-def test_search_nao_pode_conflitar_com_parametros():
-    requests = []
-    with _client(requests) as cw, pytest.raises(ValueError):
-        cw.canned_responses.list(1, search="abc", parametros={"search": "def"})
-    assert not requests
-
-
-@pytest.mark.parametrize("payload", [
-    {"payload": [_registro()]},
-    {},
-    None,
-    [_registro(id=True)],
-    [_registro(account_id=0)],
-    [_registro(content="")],
-    [{"id": 3, "short_code": "x", "content": "a"}],
-    ["texto inesperado"],
-])
-def test_resposta_invalida_levanta_erro_chatwoot(payload):
-    requests = []
-    with _client(requests, lambda req: httpx.Response(200, json=payload)) as cw:
+@pytest.mark.parametrize("json_response", [None, {}, {"payload": []}, "resposta", [1], ["texto"], [None]])
+def test_formato_de_lista_invalido_falha_fechada(json_response):
+    chamadas = []
+    with _client(chamadas, handler=lambda req: httpx.Response(200, json=json_response)) as cw:
         with pytest.raises(ErroAPIChatwoot):
-            cw.canned_responses.list_typed(1)
+            cw.canned_responses.list(1)
+    assert len(chamadas) == 1
 
 
-def test_criacao_tipadas_json_campos_oficiais():
-    requests = []
-    with _client(requests) as cw:
-        result = cw.canned_responses.create(
-            1, CannedResponseCreate(short_code="gnv", content="Faça inspeção.")
+def test_criar_contrato_e_retorno_json_sem_remodelagem():
+    chamadas = []
+    response = CannedResponse(short_code="gnv_periodica", content="Mensagem padrão")
+    with _client(chamadas) as cw:
+        resultado = cw.canned_responses.create(1, response)
+    assert resultado == _registro()
+    assert isinstance(resultado, dict)
+    assert json.loads(chamadas[0].content) == {
+        "short_code": "gnv_periodica", "content": "Mensagem padrão"
+    }
+    assert chamadas[0].method == "POST"
+
+
+def test_atualizacao_parcial_usa_o_mesmo_contrato():
+    chamadas = []
+    with _client(chamadas) as cw:
+        result = cw.canned_responses.update(
+            1, 7, CannedResponse(content="Texto revisado")
         )
-    assert result["id"] == 7
-    assert len(requests) == 1
-    assert requests[0].method == "POST"
-    assert requests[0].url.path == "/api/v1/accounts/1/canned_responses"
-    assert requests[0].read().decode().find("canned_response") == -1
-    assert requests[0].headers["content-type"].startswith("application/json")
-    import json
-    assert json.loads(requests[0].content) == {"short_code": "gnv", "content": "Faça inspeção."}
+    assert result == _registro()
+    assert chamadas[0].method == "PATCH"
+    assert chamadas[0].url.path.endswith("/canned_responses/7")
+    assert json.loads(chamadas[0].content) == {"content": "Texto revisado"}
 
 
-def test_update_tipado_parcial_e_patch():
-    requests = []
-    with _client(requests) as cw:
-        cw.canned_responses.update(
-            1, 7, CannedResponseUpdate(content="Novo texto")
-        )
-    assert len(requests) == 1
-    assert requests[0].method == "PATCH"
-    assert requests[0].url.path == "/api/v1/accounts/1/canned_responses/7"
-    import json
-    assert json.loads(requests[0].content) == {"content": "Novo texto"}
+def test_atualizar_apenas_atalho():
+    chamadas = []
+    with _client(chamadas) as cw:
+        cw.canned_responses.update(1, 7, CannedResponse(short_code="novo"))
+    assert json.loads(chamadas[0].content) == {"short_code": "novo"}
 
 
-def test_delete_retorna_none_para_200_sem_corpo():
-    requests = []
-    with _client(requests) as cw:
-        assert cw.canned_responses.delete(1, 7) is None
-    assert requests[0].method == "DELETE"
-
-
-def test_compatibilidade_mapping_create_update():
-    import json
-    requests = []
-    with _client(requests) as cw:
-        cw.canned_responses.create(1, {"short_code": "old", "content": "Original"})
-        cw.canned_responses.update(1, 7, {"content": "Corrigido"})
-    assert len(requests) == 2
-    assert json.loads(requests[0].content)["short_code"] == "old"
-    assert json.loads(requests[1].content) == {"content": "Corrigido"}
-
-
-@pytest.mark.parametrize("factory", [
-    lambda: CannedResponseCreate("", "texto"),
-    lambda: CannedResponseCreate("atalho", "  "),
-    lambda: CannedResponseCreate(123, "texto"),
-    lambda: CannedResponseUpdate(),
-    lambda: CannedResponseUpdate(content=""),
-    lambda: CannedResponseUpdate(short_code=123),
-    lambda: CannedResponseUpdate(content="x", short_code=" "),
-    lambda: CannedResponse.from_api({"id": 1, "account_id": 2, "short_code": "x"}),
+@pytest.mark.parametrize("op,argumento", [
+    ("create", CannedResponse(content="sem atalho")),
+    ("create", CannedResponse(short_code="sem_conteudo")),
+    ("create", CannedResponse()),
+    ("update", CannedResponse()),
+    ("create", {"short_code": "livre", "content": "sem validação"}),
+    ("update", {"content": "sem contrato"}),
 ])
-def test_modelos_invalidos_antes_de_http(factory):
+def test_entrada_incompleta_ou_nao_tipado_nao_envia(op, argumento):
+    chamadas = []
+    with _client(chamadas) as cw, pytest.raises((ValueError, TypeError)):
+        if op == "create":
+            cw.canned_responses.create(1, argumento)
+        else:
+            cw.canned_responses.update(1, 7, argumento)
+    assert not chamadas
+
+
+@pytest.mark.parametrize("argumento", [
+    {"short_code": 123},
+    {"content": ""},
+    {"short_code": " "},
+    {"content": False},
+])
+def test_contrato_valida_tipos_e_vazio(argumento):
     with pytest.raises(ValueError):
-        factory()
+        CannedResponse(**argumento)
 
 
-def test_erro_http_propagado_sem_retry():
-    requests = []
-    with _client(requests, lambda req: httpx.Response(403, json={"error": "denied"})) as cw:
+def test_dataclass_congelada_e_nao_modela_saida():
+    obj = CannedResponse("atalho", "texto")
+    with pytest.raises(FrozenInstanceError):
+        obj.content = "alterado"
+    assert not hasattr(obj, "id")
+    assert not hasattr(CannedResponse, "from_api")
+
+
+def test_create_update_rejeitam_id_invalido_antes_http():
+    chamadas = []
+    with _client(chamadas) as cw:
+        with pytest.raises(ValueError):
+            cw.canned_responses.create(0, CannedResponse("x", "texto"))
+        with pytest.raises(ValueError):
+            cw.canned_responses.update(1, 0, CannedResponse(content="texto"))
+    assert not chamadas
+
+
+def test_erro_http_e_timeout_sem_retry():
+    chamadas = []
+    with _client(chamadas, handler=lambda req: httpx.Response(403, json={"secret": "sigilo"})) as cw:
         with pytest.raises(ErroAPIChatwoot) as exc:
-            cw.canned_responses.list_typed(1)
+            cw.canned_responses.create(1, CannedResponse("atalho", "conteudo"))
     assert exc.value.status_http == 403
-    assert len(requests) == 1
+    assert "sigilo" not in str(exc.value)
+    assert len(chamadas) == 1
+
+
+def test_delete_sem_corpo_retorna_none():
+    chamadas = []
+    with _client(chamadas) as cw:
+        assert cw.canned_responses.delete(1, 7) is None
+    assert chamadas[0].method == "DELETE"
+
+
+def test_sem_variantes_publicas_antigas():
+    chamadas = []
+    with _client(chamadas) as cw:
+        assert not hasattr(cw.canned_responses, "list_typed")
+        assert not hasattr(cw.canned_responses, "get")
+        with pytest.raises(TypeError):
+            cw.canned_responses.list(1, parametros={"search": "gnv"})
+    assert not chamadas
