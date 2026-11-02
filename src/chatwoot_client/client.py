@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping
-from typing import Any
+from collections.abc import Mapping, Sequence
+from typing import Any, BinaryIO
 from urllib.parse import urlsplit
 
 import httpx
@@ -19,6 +19,20 @@ from .inboxes import InboxesResource
 from .labels import LabelsResource
 from .messages import MessagesResource
 from .profile import ProfileResource
+from .transport import executar
+from .audit_logs import AuditLogsResource
+from .account_agentbots import AccountAgentBotsResource
+from .canned_responses import CannedResponsesResource
+from .custom_attributes import CustomAttributesResource
+from .contact_labels import ContactLabelsResource
+from .automation_rules import AutomationRulesResource
+from .help_center import HelpCenterResource
+from .integrations import IntegrationsResource
+from .teams import TeamsResource
+from .custom_filters import CustomFiltersResource
+from .webhooks import WebhooksResource
+from .reports import ReportsResource
+from .campaigns import CampaignsResource
 
 
 class ErroConfiguracaoChatwoot(ValueError):
@@ -50,7 +64,10 @@ class CWClient:
     consultas e escritas explícitas, preservando integralmente o JSON da API.
     """
 
-    def __init__(self, base_url: str, api_token: str, timeout: float = 30.0) -> None:
+    def __init__(
+        self, base_url: str, api_token: str, timeout: float = 30.0,
+        *, auth_mode: str = "bearer",
+    ) -> None:
         base_url = base_url.strip().rstrip("/")
         partes_url = urlsplit(base_url)
         if (
@@ -65,17 +82,23 @@ class CWClient:
                 "base_url deve ser uma URL http(s) sem credenciais, "
                 "query ou fragmento."
             )
-        if not api_token or not api_token.strip():
+        if not isinstance(api_token, str) or not api_token.strip():
             raise ErroConfiguracaoChatwoot("api_token é obrigatório.")
-        if not math.isfinite(timeout) or timeout <= 0:
+        if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not math.isfinite(timeout) or timeout <= 0:
             raise ErroConfiguracaoChatwoot(
                 "timeout deve ser um número positivo."
             )
+        if auth_mode not in {"bearer", "api_access_token"}:
+            raise ErroConfiguracaoChatwoot("auth_mode inválido.")
         self._base_path = partes_url.path.strip("/")
         base_url_raiz = f"{partes_url.scheme}://{partes_url.netloc}/"
         self._http = httpx.Client(
             base_url=base_url_raiz,
-            headers={"Authorization": f"Bearer {api_token.strip()}"},
+            headers=(
+                {"Authorization": f"Bearer {api_token.strip()}"}
+                if auth_mode == "bearer"
+                else {"api_access_token": api_token.strip()}
+            ),
             timeout=timeout,
         )
 
@@ -89,11 +112,92 @@ class CWClient:
         self.conversation_assignments: ConversationAssignmentsResource = ConversationAssignmentsResource(self)
         self.labels: LabelsResource = LabelsResource(self)
         self.messages: MessagesResource = MessagesResource(self)
+        self.audit_logs: AuditLogsResource = AuditLogsResource(self)
+        self.account_agentbots: AccountAgentBotsResource = AccountAgentBotsResource(self)
+        self.canned_responses: CannedResponsesResource = CannedResponsesResource(self)
+        self.custom_attributes: CustomAttributesResource = CustomAttributesResource(self)
+        self.contact_labels: ContactLabelsResource = ContactLabelsResource(self)
+        self.automation_rules: AutomationRulesResource = AutomationRulesResource(self)
+        self.help_center: HelpCenterResource = HelpCenterResource(self)
+        self.integrations: IntegrationsResource = IntegrationsResource(self)
+        self.teams: TeamsResource = TeamsResource(self)
+        self.custom_filters: CustomFiltersResource = CustomFiltersResource(self)
+        self.webhooks: WebhooksResource = WebhooksResource(self)
+        self.reports: ReportsResource = ReportsResource(self)
+        self.campaigns: CampaignsResource = CampaignsResource(self)
 
     @staticmethod
     def _validar_id(valor: int, nome: str) -> None:
         if isinstance(valor, bool) or not isinstance(valor, int) or valor <= 0:
             raise ValueError(f"{nome} deve ser um inteiro positivo.")
+
+    @staticmethod
+    def _segmento(valor: str | int, nome: str) -> str:
+        """Protege segmentos textuais de caminhos da API."""
+        from urllib.parse import quote
+        if isinstance(valor, bool) or not isinstance(valor, (str, int)):
+            raise ValueError(f"{nome} deve ser texto ou inteiro.")
+        if not str(valor).strip():
+            raise ValueError(f"{nome} não pode ser vazio.")
+        return quote(str(valor), safe="")
+
+    def _request(
+        self,
+        metodo: str,
+        caminho: str,
+        *,
+        dados: Mapping[str, Any] | None = None,
+        parametros: Mapping[str, Any] | None = None,
+        arquivos: Sequence[tuple[str, tuple[str, bytes | BinaryIO, str]]] | None = None,
+        formulario: Mapping[str, Any] | None = None,
+    ) -> Any:
+        """Único caminho de execução HTTP, sem retry automático.
+
+        As operações por recurso não precisam conhecer httpx ou autenticação.
+        """
+        try:
+            resposta = executar(
+                self._http, self._base_path, metodo, caminho,
+                dados=dados, parametros=parametros, arquivos=arquivos,
+                formulario=formulario,
+            )
+        except httpx.RequestError:
+            raise ErroAPIChatwoot(
+                f"Falha de conexão ao chamar {metodo} {caminho}.",
+                caminho=caminho,
+            ) from None
+        try:
+            resposta.raise_for_status()
+        except httpx.HTTPStatusError as erro:
+            status = erro.response.status_code
+            raise ErroAPIChatwoot(
+                f"Chatwoot respondeu HTTP {status} para {metodo} {caminho}.",
+                caminho=caminho, status_http=status,
+            ) from None
+        if resposta.status_code == 204 or not resposta.content:
+            return None
+        try:
+            return resposta.json()
+        except ValueError:
+            raise ErroAPIChatwoot(
+                f"Chatwoot retornou JSON inválido para {metodo} {caminho}.",
+                caminho=caminho, status_http=resposta.status_code,
+            ) from None
+
+    def _get(self, caminho: str, **kwargs: Any) -> Any:
+        return self._request("GET", caminho, **kwargs)
+
+    def _post(self, caminho: str, **kwargs: Any) -> Any:
+        return self._request("POST", caminho, **kwargs)
+
+    def _put(self, caminho: str, **kwargs: Any) -> Any:
+        return self._request("PUT", caminho, **kwargs)
+
+    def _patch(self, caminho: str, **kwargs: Any) -> Any:
+        return self._request("PATCH", caminho, **kwargs)
+
+    def _delete(self, caminho: str, **kwargs: Any) -> Any:
+        return self._request("DELETE", caminho, **kwargs)
 
     def _solicitar_json(
         self,
@@ -102,42 +206,14 @@ class CWClient:
         *,
         dados: Mapping[str, Any] | None = None,
         parametros: Mapping[str, Any] | None = None,
+        arquivos: Sequence[tuple[str, tuple[str, bytes | BinaryIO, str]]] | None = None,
+        formulario: Mapping[str, Any] | None = None,
     ) -> Any:
-        caminho_relativo = caminho.lstrip("/")
-        if self._base_path:
-            caminho_relativo = f"{self._base_path}/{caminho_relativo}"
-
-        try:
-            resposta = self._http.request(
-                metodo,
-                caminho_relativo,
-                json=dict(dados) if dados is not None else None,
-                params=parametros,
-            )
-        except httpx.RequestError:
-            raise ErroAPIChatwoot(
-                f"Falha de conexão ao chamar {metodo} {caminho}.",
-                caminho=caminho,
-            ) from None
-
-        try:
-            resposta.raise_for_status()
-        except httpx.HTTPStatusError as erro:
-            status = erro.response.status_code
-            raise ErroAPIChatwoot(
-                f"Chatwoot respondeu HTTP {status} para {metodo} {caminho}.",
-                caminho=caminho,
-                status_http=status,
-            ) from None
-
-        try:
-            return resposta.json()
-        except ValueError:
-            raise ErroAPIChatwoot(
-                f"Chatwoot retornou JSON inválido para {metodo} {caminho}.",
-                caminho=caminho,
-                status_http=resposta.status_code,
-            ) from None
+        """Adaptador retrocompatível para os recursos existentes."""
+        return self._request(
+            metodo, caminho, dados=dados, parametros=parametros,
+            arquivos=arquivos, formulario=formulario,
+        )
 
     @staticmethod
     def _exigir_objeto(

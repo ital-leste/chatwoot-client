@@ -16,7 +16,7 @@ with CWClient(base_url="https://chatwoot.example", api_token="seu-token") as cw:
 
 O construtor recebe URL, token e timeout explicitamente. O pacote não carrega `.env`, não gerencia sessões Hermes, não recebe webhooks e não persiste lotes. O aplicativo consumidor decide quando uma ação Chatwoot é autorizada.
 
-Os recursos implementados são `account`, `agents`, `contacts`, `inboxes`, `profile`, `conversations`, `messages`, `labels`, `conversation_labels` e `conversation_assignments`. Módulos reservados sem métodos ainda permanecem no pacote.
+Os recursos foram ampliados para as 22 categorias documentadas da Application API v4.19.0. Os 16 métodos originalmente extraídos permanecem com suas assinaturas; consulte a matriz completa na documentação para conhecer os 108 métodos adicionais.
 
 ## Instalação e testes
 
@@ -32,7 +32,7 @@ Este repositório é privado. Aplicações externas devem utilizá-lo como depen
 ## Compatibilidade
 
 - Preservados: `CWClient`, `ErroAPIChatwoot`, `ErroConfiguracaoChatwoot`, recursos, assinaturas, endpoints e retornos JSON existentes.
-- `messages.create()` aceita texto JSON; não implementa multipart.
+- `messages.create()` preserva a publicação de texto JSON. `messages.create_with_attachments()` adiciona multipart, e `profile.update_multipart()` suporta atualização de avatar.
 - `conversation_labels.replace()` substitui todas as etiquetas.
 - `conversation_assignments.assign()` exige exatamente um `assignee_id` ou `team_id`.
 - Não existe retry automático para POST; um timeout pode deixar resultado indeterminado.
@@ -43,3 +43,47 @@ Este repositório é privado. Aplicações externas devem utilizá-lo como depen
 Toda evolução do transporte Chatwoot acontece neste repositório. O projeto `chawoot-hermes-agent` importa esta biblioteca, e mantém apenas as decisões de webhook, admissibilidade, persistência, debounce, worker e integração Hermes. Esta extração não autoriza publicação real ou handoff.
 
 Origem: `src/chatwoot_hermes_agent/gateway/chatwoot/` do commit `122ab821`.
+
+## Contratos tipados de mensagens (homolog)
+
+A fronteira pública do pacote exporta `TextMessage`, `MediaMessage`, `Attachment`, `MimeType`, `MessageType` e `ConversationStatus`. O consumo recomendado de mensagens usa `cw.messages.send_text()` ou `send_media()`. O atributo `private: bool` representa a visibilidade; `visibility` permanece como alias de compatibilidade. Os atalhos `send_image()`, `send_audio()`, `send_video()` e `send_document()` continuam disponíveis por compatibilidade. Todos usam o mesmo endpoint oficial sem expor essa característica ao consumidor.
+
+```python
+from chatwoot_client import CWClient, TextMessage, MediaMessage, Attachment, MimeType, MessageVisibility
+
+with CWClient("https://chatwoot.example", "TOKEN") as cw:
+    cw.messages.send_text(1, 2, TextMessage("Bom dia!"))
+    cw.messages.send_text(1, 2, TextMessage("Nota interna", private=True))
+    cw.messages.send_document(1, 2, Attachment.from_path("laudo.pdf", mime_type=MimeType.PDF), caption="Segue o laudo")
+```
+
+Anexos aceitam caminhos locais, bytes, fluxos binários e URL HTTPS. Para URLs de agentes ou outros sistemas externos, configure `allowed_hosts` no envio e limite tamanho/timeout. A busca remota nunca recebe o token do Chatwoot. Nenhum envio aplica retry implícito. Veja [Guia de utilização](docs/GUIA_UTILIZACAO.md).
+
+## Operações de conversa e etiquetas para integração de agentes
+
+Além do envio de mensagens, a API pública oferece contratos e métodos para as ações frequentes do Hermes:
+
+```python
+from chatwoot_client import ConversationStatus, LabelDefinition
+
+cw.conversations.set_status(1, 100, ConversationStatus.PENDING)
+cw.labels.create_label(1, LabelDefinition("aguardando-laudo", "#224466"))
+cw.conversation_labels.add(1, 100, "aguardando-laudo")
+cw.conversation_labels.remove(1, 100, "aguardando-laudo")
+```
+
+`conversation_labels.add()` realiza GET da lista atual e POST da união deduplicada, sem apagar etiquetas pré-existentes. `remove()` preserva as demais. `replace()` ainda substitui integralmente a lista. A operação de união não é atômica; consumidores concorrentes precisam serializar mutações por conversa. Criar uma etiqueta no catálogo da conta não a associa automaticamente a uma conversa. A biblioteca não decide quais etiquetas o Hermes está autorizado a alterar.
+
+## Expansão da Application API (homolog)
+
+Cobertura de código de 124 operações da Application API do Chatwoot v4.19.0. Os contratos anteriores continuam presentes; os novos recursos aceitam payloads data e parâmetros de consulta. Os testes simulados não substituem homologação real da instalação.
+
+- [Arquitetura](docs/ARQUITETURA.md)
+- [Matriz dos endpoints](docs/MATRIZ_API.md)
+- [Contratos HTTP](docs/CONTRATOS_HTTP.md)
+- [Autenticação](docs/AUTENTICACAO.md)
+- [Guia de utilização](docs/GUIA_UTILIZACAO.md)
+- [Compatibilidade](docs/COMPATIBILIDADE.md)
+- [Homologação](docs/HOMOLOGACAO.md)
+
+A autenticação padrão é Bearer; auth_mode="api_access_token" ativa o cabeçalho legado. Anexos podem ser enviados por messages.create_with_attachments(). Nenhuma escrita é repetida automaticamente após timeout.
