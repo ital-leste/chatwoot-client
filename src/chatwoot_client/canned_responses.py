@@ -1,122 +1,78 @@
-"""Canned Responses da Application API Chatwoot 4.19."""
+"""Operações tipadas de entrada e respostas JSON nativas para Canned Responses."""
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
-from .models import CannedResponse, CannedResponseCreate, CannedResponseUpdate
+from .models import CannedResponse
 
 if TYPE_CHECKING:
     from .client import CWClient
 
 
 class CannedResponsesResource:
-    """Consultas com filtro opcional, criação, atualização e exclusão."""
+    """CRUD de respostas rápidas da conta, sem modelos de saída."""
 
     def __init__(self, client: CWClient) -> None:
         self._client = client
 
     @staticmethod
-    def _parametros_consulta(
-        *, search: str | None, parametros: Mapping[str, Any] | None,
-    ) -> dict[str, Any] | None:
-        if parametros is not None and not isinstance(parametros, Mapping):
-            raise ValueError("parametros deve ser um mapeamento de consulta.")
-        consulta = dict(parametros or {})
-        if search is not None:
-            if not isinstance(search, str) or not search.strip() or "\x00" in search:
-                raise ValueError("search deve ser texto não vazio e sem NUL.")
-            if "search" in consulta:
-                raise ValueError("Use search ou parametros['search'], não ambos.")
-            consulta["search"] = search.strip()
-        return consulta or None
+    def _validar_search(search: str | None) -> dict[str, str] | None:
+        if search is None:
+            return None
+        if not isinstance(search, str) or not search.strip() or "\x00" in search:
+            raise ValueError("search deve ser texto não vazio e sem NUL.")
+        return {"search": search.strip()}
 
-    def list(
-        self,
-        account_id: int,
-        *,
-        search: str | None = None,
-        parametros: Mapping[str, Any] | None = None,
-    ) -> Any:
-        """GET sem search lista tudo; GET com search filtra no Chatwoot.
-
-        O retorno permanece o array JSON original, por retrocompatibilidade.
-        `parametros={"search": ...}` continua aceito.
-        """
+    def list(self, account_id: int, *, search: str | None = None) -> list[dict[str, Any]]:
+        """GET: sem search retorna tudo, com search filtra no Chatwoot."""
         self._client._validar_id(account_id, "account_id")
-        consulta = self._parametros_consulta(search=search, parametros=parametros)
+        consulta = self._validar_search(search)
         caminho = f"api/v1/accounts/{account_id}/canned_responses"
-        return self._client._get(caminho, parametros=consulta)
-
-    def list_typed(
-        self, account_id: int, *, search: str | None = None,
-    ) -> list[CannedResponse]:
-        """Mesma consulta de list, com desserialização validada de cada item."""
-        caminho = f"api/v1/accounts/{account_id}/canned_responses"
-        resultado = self.list(account_id, search=search)
+        resposta = self._client._get(caminho, parametros=consulta)
         lista = self._client._exigir_lista(
-            resultado, operacao="consultar respostas rápidas", caminho=caminho
+            resposta, operacao="listar respostas rápidas", caminho=caminho
         )
-        try:
-            return [CannedResponse.from_api(item) for item in lista]
-        except ValueError:
+        if any(not isinstance(item, dict) for item in lista):
             from .client import ErroAPIChatwoot
             raise ErroAPIChatwoot(
-                "Chatwoot retornou uma resposta rápida com estrutura inválida.",
+                "Chatwoot retornou itens inválidos na lista de respostas rápidas.",
                 caminho=caminho,
-            ) from None
+            )
+        return lista
 
-    def create(
-        self,
-        account_id: int,
-        data: Mapping[str, Any] | CannedResponseCreate,
-        *,
-        parametros: Mapping[str, Any] | None = None,
-    ) -> Any:
-        """POST: contrato tipado ou payload histórico (mapping)."""
+    def create(self, account_id: int, response: CannedResponse) -> dict[str, Any]:
+        """POST: os dois campos são obrigatórios."""
         self._client._validar_id(account_id, "account_id")
-        if isinstance(data, CannedResponseCreate):
-            dados: Mapping[str, Any] = data.to_payload()
-        elif isinstance(data, Mapping):
-            dados = data
-        else:
-            raise ValueError("data deve ser CannedResponseCreate ou objeto JSON.")
+        if not isinstance(response, CannedResponse):
+            raise TypeError("response deve ser CannedResponse.")
+        if response.short_code is None or response.content is None:
+            raise ValueError("Criação requer short_code e content.")
         caminho = f"api/v1/accounts/{account_id}/canned_responses"
-        return self._client._post(caminho, dados=dados, parametros=parametros)
+        resultado = self._client._post(caminho, dados=response.to_payload())
+        return self._client._exigir_objeto(
+            resultado, operacao="criar resposta rápida", caminho=caminho
+        )
 
     def update(
-        self,
-        account_id: int,
-        canned_response_id: int,
-        data: Mapping[str, Any] | CannedResponseUpdate,
-        *,
-        parametros: Mapping[str, Any] | None = None,
-    ) -> Any:
-        """PATCH: atualização parcial tipada ou payload histórico."""
+        self, account_id: int, canned_response_id: int, response: CannedResponse,
+    ) -> dict[str, Any]:
+        """PATCH: apenas os campos informados, sem sobrescrever os demais."""
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(canned_response_id, "canned_response_id")
-        if isinstance(data, CannedResponseUpdate):
-            dados: Mapping[str, Any] = data.to_payload()
-        elif isinstance(data, Mapping):
-            dados = data
-        else:
-            raise ValueError("data deve ser CannedResponseUpdate ou objeto JSON.")
-        caminho = (
-            f"api/v1/accounts/{account_id}/canned_responses/{canned_response_id}"
+        if not isinstance(response, CannedResponse):
+            raise TypeError("response deve ser CannedResponse.")
+        dados = response.to_payload()
+        if not dados:
+            raise ValueError("Atualização requer short_code e/ou content.")
+        caminho = f"api/v1/accounts/{account_id}/canned_responses/{canned_response_id}"
+        resultado = self._client._patch(caminho, dados=dados)
+        return self._client._exigir_objeto(
+            resultado, operacao="atualizar resposta rápida", caminho=caminho
         )
-        return self._client._patch(caminho, dados=dados, parametros=parametros)
 
-    def delete(
-        self,
-        account_id: int,
-        canned_response_id: int,
-        *,
-        parametros: Mapping[str, Any] | None = None,
-    ) -> Any:
-        """DELETE por ID; endpoint não possui operação de restauração."""
+    def delete(self, account_id: int, canned_response_id: int) -> Any:
+        """DELETE: devolve corpo JSON nativo ou None caso vazio."""
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(canned_response_id, "canned_response_id")
-        caminho = (
-            f"api/v1/accounts/{account_id}/canned_responses/{canned_response_id}"
-        )
-        return self._client._delete(caminho, parametros=parametros)
+        caminho = f"api/v1/accounts/{account_id}/canned_responses/{canned_response_id}"
+        return self._client._delete(caminho)

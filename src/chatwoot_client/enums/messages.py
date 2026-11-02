@@ -7,15 +7,6 @@ class MessageType(StrEnum):
     INCOMING = "incoming"
 
 
-class MessageVisibility(StrEnum):
-    PUBLIC = "public"
-    PRIVATE = "private"
-
-    @property
-    def is_private(self) -> bool:
-        return self is MessageVisibility.PRIVATE
-
-
 class MessageContentType(StrEnum):
     TEXT = "text"
     INPUT_EMAIL = "input_email"
