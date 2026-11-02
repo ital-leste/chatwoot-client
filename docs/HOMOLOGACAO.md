@@ -13,10 +13,12 @@ Os testes unitários e de contrato usam httpx.MockTransport; não devem disparar
 1. Registrar versão/edição da instalação Chatwoot, base URL e escopo de permissões (sem armazenar token).
 2. Executar leituras em conta de testes, incluindo filtros, paginação e consulta por ID.
 3. Autorizar separadamente escritas por categoria, verificando estado final, não apenas HTTP 200.
-4. Verificar mensagens públicas e notas privadas, multipart, erros de autorização e timeouts sem reenvio automático.
-5. Usar apenas dados de teste para operações de exclusão, mesclagem e alterações administrativas.
-6. Validar o consumidor chawoot-hermes-agent com dependência fixada em SHA ou tag, sem alterar as regras homologadas de webhook/worker.
-7. Documentar cenário, resultado, ambiente, evidência e pendências, sem dados pessoais ou credenciais.
+4. Verificar `send_text` público/privado, `send_media` e atalhos de imagem, áudio, vídeo e PDF, multipart com legenda, erros de autorização e timeouts sem reenvio automático.
+5. Exercitar caminhos locais na máquina do processo, URLs HTTPS de hosts permitidos, arquivos binários e fluxo aberto; confirmar MIME, nome, limites, fechamento e ausência de Base64.
+6. Para mídia recebida de fontes externas/IA, configurar `allowed_hosts` e controles de saída de rede, e verificar bloqueio de URL local, redirecionamentos e tamanhos excedidos.
+7. Usar apenas dados de teste para operações de exclusão, mesclagem e alterações administrativas.
+8. Validar o consumidor chawoot-hermes-agent com dependência fixada em SHA ou tag, sem alterar as regras homologadas de webhook/worker.
+9. Documentar cenário, resultado, ambiente, evidência e pendências, sem dados pessoais ou credenciais.
 
 ## Barreiras
 

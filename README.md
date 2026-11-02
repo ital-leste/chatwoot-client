@@ -44,6 +44,21 @@ Toda evolução do transporte Chatwoot acontece neste repositório. O projeto `c
 
 Origem: `src/chatwoot_hermes_agent/gateway/chatwoot/` do commit `122ab821`.
 
+## Contratos tipados de mensagens (homolog)
+
+A fronteira pública do pacote exporta `TextMessage`, `MediaMessage`, `Attachment`, `MimeType`, `MessageType` e `MessageVisibility`. O consumo recomendado de mensagens usa `cw.messages.send_text()` ou `send_media()`, com atalhos `send_image()`, `send_audio()`, `send_video()` e `send_document()`. Todos usam o mesmo endpoint oficial sem expor essa característica ao consumidor.
+
+```python
+from chatwoot_client import CWClient, TextMessage, MediaMessage, Attachment, MimeType, MessageVisibility
+
+with CWClient("https://chatwoot.example", "TOKEN") as cw:
+    cw.messages.send_text(1, 2, TextMessage("Bom dia!"))
+    cw.messages.send_text(1, 2, TextMessage("Nota interna", visibility=MessageVisibility.PRIVATE))
+    cw.messages.send_document(1, 2, Attachment.from_path("laudo.pdf", mime_type=MimeType.PDF), caption="Segue o laudo")
+```
+
+Anexos aceitam caminhos locais, bytes, fluxos binários e URL HTTPS. Para URLs de agentes ou outros sistemas externos, configure `allowed_hosts` no envio e limite tamanho/timeout. A busca remota nunca recebe o token do Chatwoot. Nenhum envio aplica retry implícito. Veja [Guia de utilização](docs/GUIA_UTILIZACAO.md).
+
 ## Expansão da Application API (homolog)
 
 Cobertura de código de 124 operações da Application API do Chatwoot v4.19.0. Os contratos anteriores continuam presentes; os novos recursos aceitam payloads data e parâmetros de consulta. Os testes simulados não substituem homologação real da instalação.
