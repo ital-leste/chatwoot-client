@@ -1,53 +1,41 @@
-# Arquitetura
+# Arquitetura — contrato de entrada, saída nativa
 
-## Propósito
+## Objetivo e fronteiras
 
-Biblioteca Python independente para a Application API Chatwoot 4.19.0. O consumidor fornece base_url e api_token. O pacote não depende de Hermes, Evolution, banco de dados, webhook, .env ou infraestrutura de atendimento.
+Biblioteca Python independente para a Application API Chatwoot 4.19.0, sem acoplamento ao Hermes, Evolution, VPS, banco, webhook ou .env. A aplicação fornece URL/token e controla autorização, idempotência, concorrência e regras de atendimento.
 
-## Fronteiras e responsabilidades
+**Regra oficial:** onde houver um contrato tipado de entrada, a operação pública recebe exclusivamente esse tipo. Onde não existir contrato, os parâmetros permanecem próximos da Application API, inclusive `Mapping[str, Any]` quando necessário. As respostas permanecem JSON nativo (`dict`, `list` ou `None`), sem modelos de saída de domínio obrigatórios.
 
-- `chatwoot_client/__init__.py`: exporta CWClient, models, enums e exceções oficialmente suportados.
-- `client.py`: composição dos recursos, autenticação, execução HTTP centralizada em `_request` e verbos privados `_get/_post/_put/_patch/_delete`, retorno e erros. `_solicitar_json` permanece como adaptador retrocompatível.
-- `transport.py`: envio HTTP efetivo, JSON, multipart e formulário. Os recursos não acessam httpx diretamente.
-- `models/`: contratos imutáveis de mensagens, anexos e definição de etiqueta da conta, com validação estrutural; sem arquivo/rede no construtor.
-- `enums/`: valores oficiais de tipo de mensagem, status de conversa, conteúdo e MIME comuns; `private: bool` é preferido. `MessageVisibility` permanece por compatibilidade.
-- `attachment_resolver.py`: preparação de caminhos, fluxos, bytes e downloads HTTPS; controla limites e fechamento de arquivos.
-- `message_payload.py`: mapeamento de contratos tipados para campos da Application API.
-- `messages.py`: operações principais `send_text` e `send_media` pelo mesmo endpoint; atalhos específicos de mídia preservados por compatibilidade. `is_voice_message` diferencia voz de áudio comum.
-- `conversations.py`: `set_status` aceita `ConversationStatus` e strings antigas.
-- `labels.py`: `create_label` aceita `LabelDefinition`; `create` anterior preservado.
-- `conversation_labels.py`: `add/remove` fazem GET + consolidação + POST, `replace` preserva semântica integral.
-- Demais recursos: operações específicas sem responsabilidade por execução HTTP, autorização de negócio ou runtime Hermes.
+Tipos primitivos como IDs, parâmetros de busca, booleanos e paginação não justificam dataclass isolada. Enumerações representam domínios fechados como `ConversationStatus`.
 
-## Contratos públicos e compatibilidade
+## Componentes
 
-O cliente continua oferecendo os 16 métodos originais e os 108 métodos adicionados. Os métodos existentes mantêm suas assinaturas e continuam compatíveis com payloads livres. A interface preferencial para publicação de mensagens é tipada. A migração dos demais recursos será gradual, conforme importância e capacidade de validação.
+- `client.py`: composição dos recursos; transporte HTTP compartilhado em `_request`; cabeçalhos; exceções; os métodos privados `_get/_post/_put/_patch/_delete`; `_solicitar_json` como adaptador interno dos recursos não refatorados.
+- `transport.py`: execução HTTP, serialização JSON, multipart e formulário.
+- `models/`: contratos imutáveis de **entrada** (`TextMessage`, `MediaMessage`, `Attachment`, `LabelDefinition`, `CannedResponse`).
+- `enums/`: tipos de mensagens, MIME, conteúdo e estados de conversa.
+- `message_payload.py`: serialização de texto/mídia para os campos oficiais.
+- `attachment_resolver.py`: caminhos, bytes, streams e downloads HTTPS com limites.
+- `messages.py`: `send_text(TextMessage)` e `send_media(MediaMessage)`; um endpoint, JSON ou multipart conforme os anexos. Não há `messages.create`, `create_with_attachments` ou atalhos por tipo de mídia.
+- `labels.py`: `create(LabelDefinition)`; métodos sem contrato de entrada específico ainda seguem a API.
+- `conversation_labels.py`: `add/remove` consolidam listas por GET + POST, `replace` substitui integralmente.
+- `conversations.py`: `set_status(ConversationStatus)` exige enum; consultas de conversas preservam JSON nativo.
+- `canned_responses.py`: `list(search=None)` faz GET completo/filtrado; `create(CannedResponse)` e `update(CannedResponse)` validam campos exigidos; `delete(id)` remove.
 
-O tipo de conteúdo da mensagem (ex.: text) não deve ser confundido com MIME de anexo (ex.: application/pdf). Os modelos validam invariantes; condições externas como arquivo existente ou resposta de URL são avaliadas na execução.
+## Respostas rápidas
 
-## Segurança e limites
+A dataclass única `CannedResponse` contém os campos opcionais de **entrada** `short_code` e `content`. Verifica tipo e conteúdo não vazio quando presente. As regras operacionais são distintas: criação requer ambos; atualização parcial requer ao menos um. A imutabilidade impede modificações acidentais do objeto, mas não substitui validação da operação.
 
-O envio pode produzir efeitos externos: não há retry automático de POST após timeout. O sistema consumidor gerencia idempotência, permissões, handoff e autorização de envio.
+A API devolve arrays JSON em listagens e objetos JSON nas escritas. O cliente confere a forma esperada, mas não transforma respostas em dataclasses; assim, campos novos fornecidos pelo Chatwoot não são descartados. O parâmetro `search`, observado no controlador 4.19.0, pesquisa no servidor sobre `short_code` e `content`, sem busca fuzzy local ou cache.
 
-URLs de anexos exigem HTTPS, destino DNS global, porta 443, sem credenciais e sem redirecionamentos automáticos; tamanho máximo padrão de 25 MiB por anexo, configurável em cada chamada. O resolvedor aplica `trust_env=False` ao download e jamais envia o token Chatwoot ao host remoto. `allowed_hosts` restringe os domínios; deve ser definido para URLs originadas de entradas não confiáveis (como respostas de agentes). O filtro DNS reduz riscos de SSRF, mas, por limitações da resolução DNS/TOCTOU, não substitui controles de egress/allowlist do ambiente. Arquivos obtidos de URLs são copiados em chunks para arquivo temporário; caminhos locais são abertos por streaming. Fluxos do consumidor não são fechados pela biblioteca.
+## Segurança, erros e concorrência
 
-## Publicação
+`_request` é a única fronteira de execução HTTP, sem retry automático de escrita. Erros HTTP/JSON são convertidos em `ErroAPIChatwoot` sem expor tokens ou corpos sensíveis. HTTP 204 e sucesso sem corpo retornam `None`. Não são retornados objetos `httpx.Response` brutos.
 
-Desenvolvimento em homolog. Main preservada até homologação real, regressão e aprovação da mudança.
+Anexos por URL exigem HTTPS, DNS público e porta 443, sem credenciais nem redirecionamentos automáticos; `allowed_hosts` limita destinos. Downloads são feitos em cliente separado com `trust_env=False`, nunca com o token Chatwoot. O filtro DNS não substitui egress/allowlist de rede. Tamanho máximo padrão de 25 MiB por anexo.
 
-## Concorrência na associação de etiquetas
+Alterações de etiquetas por `add/remove` não são atômicas; o executor deve ordenar requisições concorrentes por conversa e conferir o estado final quando necessário. Regras para ferramentas do Hermes, permissões de edição de respostas rápidas e publicação pública/privada pertencem à aplicação consumidora.
 
-O endpoint de etiquetas da conversa é uma substituição completa, não um append atômico. `add/remove` são operações de conveniência read-modify-write e podem sofrer lost update se agentes e usuários alterarem etiquetas simultaneamente. O pacote não introduz bloqueios distribuídos nem garante transação entre GET e POST. O executor que já controla lotes por conversa deve serializar atualizações de etiquetas e, quando crítico, conferir o estado final. Etiquetas criadas no catálogo e etiquetas associadas à conversa têm recursos separados.
+## Abrangência e versionamento
 
-## Compatibilidade de mensagens
-
-`private` é o campo booleano da API. `visibility=MessageVisibility.PRIVATE` segue aceito nas dataclasses para preservar código criado na primeira evolução; interfaces novas devem preferir `private=True`. Mensagens de voz utilizam `is_voice_message` no multipart, parâmetro observado no código-fonte 4.19.0 e não presente na especificação OpenAPI consultada. Validar entrega final por canal.
-
-## Canned Responses
-
-`models/canned_responses.py` contém os contratos imutáveis `CannedResponse`, `CannedResponseCreate` e `CannedResponseUpdate`. `canned_responses.py` orquestra GET, POST, PATCH e DELETE, utilizando os verbos privados de `CWClient`. Esses modelos são expostos em `chatwoot_client/__init__.py`.
-
-`list()` preserva o JSON original e aceita opcionalmente `search` (ou o parâmetro legado `parametros`); `list_typed()` usa a mesma consulta e converte a lista em contratos validados. Sem `search`, a API lista tudo; com `search`, filtra por `short_code` ou `content` no próprio servidor. A resposta é array JSON, não `{"payload": ...}`. Não há cache nem busca dinâmica no cliente Python.
-
-O catálogo é compartilhado com agentes humanos. O cliente não valida autorização de negócio, não interpreta variáveis Liquid, não cria versões e não implementa restauração após exclusão. O consumidor (por exemplo, Hermes) deve controlar permissões para operações de escrita.
-
+A matriz registra 124 pares verbo/rota da Application API, independentemente do número de métodos Python públicos. A refatoração tipada removeu aliases e assinaturas redundantes durante a homologação, antes do uso em produção. Uma versão publicada com consumidores externos exigiria migração ou versionamento incompatível adequado.

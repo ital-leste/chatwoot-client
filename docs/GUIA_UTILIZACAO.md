@@ -1,91 +1,84 @@
 # Guia de utilização
 
-Instalação: `python -m pip install -e ".[test]"`. Testes: `python -m pytest -q`.
+Instalação: `python -m pip install -e ".[test]"`. Validação: `python -m pytest -q`.
 
 ## Importações públicas
 
 ```python
 from chatwoot_client import (
     CWClient, TextMessage, MediaMessage, Attachment,
-    MimeType, ConversationStatus, LabelDefinition, MessageType,
-    ErroAPIChatwoot, ErroAnexoChatwoot,
+    MimeType, MessageType, ConversationStatus,
+    LabelDefinition, CannedResponse, ErroAPIChatwoot, ErroAnexoChatwoot,
 )
 ```
 
-## Consultas
+## Consultas e filtros
+
+Consultas que não possuem contrato específico continuam retornando o JSON da API com seus envelopes, cursores e metadados:
 
 ```python
-with CWClient("https://chatwoot.exemplo", "TOKEN", timeout=30) as cw:
+with CWClient(URL, TOKEN, timeout=30) as cw:
     perfil = cw.profile.get()
     conversas = cw.conversations.list(1, status="open", page=1)
     mensagens = cw.messages.list(1, 2)
     contatos = cw.contacts.list(1)
 ```
 
-## Enviar texto público ou nota interna
+## Enviar mensagens e notas internas
 
 ```python
-with CWClient("https://chatwoot.exemplo", "TOKEN") as cw:
-    cw.messages.send_text(1, 2, TextMessage("Bom dia!"))
-    cw.messages.send_text(
+with CWClient(URL, TOKEN) as cw:
+    publica = cw.messages.send_text(1, 2, TextMessage("Bom dia!"))
+    nota = cw.messages.send_text(
+        1, 2, TextMessage("Verificar documentos.", private=True)
+    )
+    identificador = publica["id"]  # JSON nativo; não há modelo de saída
+```
+
+`MessageType.INCOMING` e `MessageType.OUTGOING` são os valores aceitos para o tipo de mensagem. A visibilidade é somente `private: bool`.
+
+## Mídia: PDF, imagem, áudio, vídeo e anexos múltiplos
+
+Todas as mídias usam o mesmo método público `send_media()` e o único endpoint oficial de mensagens (multipart), sem aliases especializados.
+
+```python
+with CWClient(URL, TOKEN) as cw:
+    cw.messages.send_media(
         1, 2,
-        TextMessage("Verificar documentos.", private=True),
+        MediaMessage(
+            attachments=[Attachment.from_path("laudo.pdf", mime_type=MimeType.PDF)],
+            caption="Segue o laudo solicitado.",
+        ),
+    )
+    cw.messages.send_media(
+        1, 2,
+        MediaMessage(
+            attachments=[
+                Attachment(b"%PDF-1.4...", MimeType.PDF, "primeiro.pdf"),
+                Attachment.from_path("segundo.pdf"),
+            ],
+            private=True,
+        ),
     )
 ```
 
-## PDF local com legenda
+Para fontes HTTPS:
 
 ```python
-with CWClient("https://chatwoot.exemplo", "TOKEN") as cw:
-    arquivo = Attachment.from_path("laudo.pdf", mime_type=MimeType.PDF)
-    cw.messages.send_document(1, 2, arquivo, caption="Segue o laudo solicitado.")
-```
-
-A abertura do arquivo ocorre no envio, não no construtor de `Attachment`. O `Path` deve existir onde o processo Python está executando; caminho local de um computador não é automaticamente acessível em outra VPS.
-
-## PDF por URL HTTPS
-
-```python
-with CWClient("https://chatwoot.exemplo", "TOKEN") as cw:
-    arquivo = Attachment.from_url(
-        "https://arquivos.exemplo.com/laudo.pdf",
-        mime_type=MimeType.PDF,
-    )
-    cw.messages.send_document(
-        1, 2, arquivo, caption="Laudo",
-        allowed_hosts={"arquivos.exemplo.com"},
-        max_bytes=25 * 1024 * 1024,
-        url_timeout=30.0,
-    )
-```
-
-URLs não são encaminhadas ao endpoint de mensagens: o resolvedor baixa o conteúdo em chunks, sem token Chatwoot, em cliente HTTP isolado. Somente HTTPS público, porta 443, sem redirecionamentos automáticos. Para entradas externas/IA, `allowed_hosts` é fortemente recomendado, além de restrições de rede (egress).
-
-## Bytes, fluxos e envio de vários anexos
-
-```python
-arquivo = Attachment(source=b"%PDF-1.4...", filename="laudo.pdf", mime_type=MimeType.PDF)
-mensagem = MediaMessage(
-    caption="Dois documentos",
-    attachments=[
-        arquivo,
-        Attachment.from_path("segundo.pdf"),
-    ],
+arquivo = Attachment.from_url(
+    "https://arquivos.exemplo.com/laudo.pdf", mime_type=MimeType.PDF,
 )
-cw.messages.send_media(1, 2, mensagem)
+cw.messages.send_media(
+    1, 2, MediaMessage(attachments=[arquivo], caption="Laudo"),
+    allowed_hosts={"arquivos.exemplo.com"},
+    max_bytes=25 * 1024 * 1024,
+    url_timeout=30.0,
+)
 ```
 
-Para um fluxo aberto em modo `rb`, informe `filename` e `mime_type`. A biblioteca copia esse fluxo para armazenamento temporário limitado e não fecha o fluxo fornecido pelo consumidor.
+A obtenção do anexo usa cliente HTTP separado, HTTPS público, porta 443, sem credenciais nem redirecionamentos automáticos. Nunca envia o token do Chatwoot ao host externo. Arquivos locais devem existir na máquina que executa a biblioteca; streams binários fornecidos pelo consumidor não são fechados por ela.
 
-## Atalhos por tipo
-
-`send_image`, `send_audio`, `send_video` e `send_document` aceitam um `Attachment`, legenda opcional e parâmetros de visibilidade. Verificam a família do MIME antes de publicar. `send_media` aceita um `MediaMessage` com vários anexos. O resultado é sempre uma requisição multipart por chamada.
-
-## Compatibilidade
-
-Continuam disponíveis `messages.create(1, 2, content="...", private=True)`, `messages.create_with_attachments(...)`, e os outros métodos que aceitam `Mapping[str, Any]`. Todos os recursos usam o transporte centralizado; nenhuma publicação é repetida automaticamente após timeout. A confirmação HTTP não constitui comprovante de entrega ao WhatsApp.
-
-## Mensagem de voz (áudio OGG)
+## Áudio de voz
 
 ```python
 cw.messages.send_media(
@@ -93,82 +86,62 @@ cw.messages.send_media(
     MediaMessage(
         attachments=[Attachment.from_path("gravacao.ogg", mime_type=MimeType.OGG)],
         is_voice_message=True,
-        private=False,
     ),
 )
 ```
 
-O Chatwoot aceita `is_voice_message` e marca o anexo como voz. A biblioteca exige um único arquivo `audio/ogg` para esse modo; o formato final da entrega depende da integração do canal. O flag é omitido para áudio comum. `send_image/audio/video/document` continuam disponíveis por compatibilidade, mas a interface preferencial para mídia é `send_media()`.
+O Chatwoot reconhece `is_voice_message` para áudio OGG no código-fonte 4.19.0; a entrega real depende da integração do canal. O marcador não é enviado para áudio comum.
 
-## Status de conversa com enumeração
+## Conversas e etiquetas
 
 ```python
 cw.conversations.set_status(1, 2, ConversationStatus.PENDING)
 cw.conversations.set_status(1, 2, ConversationStatus.RESOLVED)
-```
 
-Valores: `OPEN`, `PENDING`, `RESOLVED` e `SNOOZED`. A forma legada `set_status(1, 2, "pending")` continua suportada. Para `SNOOZED` pode-se definir `snoozed_until` em segundos Unix. A semântica de handoff ao mudar de pending para open depende das regras do Chatwoot e do ator autenticado.
-
-## Etiquetas do catálogo e associação na conversa
-
-Criar uma etiqueta no catálogo da conta é diferente de associá-la à conversa:
-
-```python
-etiqueta = LabelDefinition(
-    title="aguardando-laudo",
-    color="#224466",
-    description="Documentação solicitada",
+cw.labels.create(
+    1, LabelDefinition(
+        title="aguardando-laudo", color="#224466",
+        description="Documentação solicitada",
+    )
 )
-cw.labels.create_label(1, etiqueta)
-
-# Preserva as etiquetas atuais e acrescenta uma nova.
 cw.conversation_labels.add(1, 2, "aguardando-laudo")
-
-# Acrescenta várias, sem duplicar:
 cw.conversation_labels.add(1, 2, ["hermes-ativo", "aguardando-laudo"])
-
-# Remove uma etiqueta preservando as demais:
 cw.conversation_labels.remove(1, 2, "hermes-ativo")
-
-# API legada: substituição completa e deliberada da lista
 cw.conversation_labels.replace(1, 2, ["aguardando-laudo"])
 ```
 
-`add` e `remove` executam GET das etiquetas existentes e POST da lista consolidada apenas quando necessário. A resposta GET deve conter `{"payload": ["etiqueta", ...]}`; se estiver inválida, a biblioteca falha sem executar substituição potencialmente destrutiva. Essas operações não são atômicas: para várias automações alterando a mesma conversa, serializar no executor/worker por `account_id` e `conversation_id` é necessário para evitar lost updates. `cw.labels.create_label` não cria associações por conta própria; não existe criação automática de etiquetas desconhecidas ao chamar `add`.
+`replace()` substitui toda a lista. `add()` e `remove()` leem a lista atual e escrevem o conjunto consolidado, preservando as demais etiquetas, mas **não são operações atômicas**. O executor deve serializar operações concorrentes por conversa. A criação de uma etiqueta no catálogo não a associa automaticamente à conversa. Outros métodos de etiqueta que ainda não possuem contrato (como atualização parcial) permanecem com os parâmetros da API.
 
-## Respostas rápidas — catálogo e filtros
-
-O recurso `canned_responses` oferece GET de todas as respostas ou de respostas filtradas, usando o mesmo endpoint. O filtro `search` é aplicado no banco do Chatwoot 4.19.0 sobre `short_code` e `content`; a ordenação é determinada pelo servidor.
+## Respostas rápidas — contrato único de entrada
 
 ```python
-from chatwoot_client import CannedResponse, CannedResponseCreate, CannedResponseUpdate
+from chatwoot_client import CannedResponse
 
-# Retorno legado: lista JSON sem envelope payload.
-todas_raw = cw.canned_responses.list(1)
-filtradas_raw = cw.canned_responses.list(1, search="gnv")
-legado = cw.canned_responses.list(1, parametros={"search": "gnv"})
+with CWClient(URL, TOKEN) as cw:
+    # GET sem filtro: todas as respostas rápidas da conta.
+    todas: list[dict] = cw.canned_responses.list(1)
 
-# Contrato tipado: mesma consulta GET, sem filtros locais.
-todas = cw.canned_responses.list_typed(1)
-filtradas = cw.canned_responses.list_typed(1, search="gnv")
-for resposta in filtradas:
-    assert isinstance(resposta, CannedResponse)
-    print(resposta.short_code, resposta.content)
+    # GET com search: filtros por short_code e content no servidor.
+    filtradas: list[dict] = cw.canned_responses.list(1, search="gnv")
 
-# Escrita tipada, mantendo métodos e respostas JSON atuais.
-criada = cw.canned_responses.create(
-    1, CannedResponseCreate(
-        short_code="inspecao_gnv", content="Consulte os documentos exigidos."
+    # POST e PATCH exigem o mesmo contrato imutável.
+    criada: dict = cw.canned_responses.create(
+        1, CannedResponse(short_code="gnv_periodica", content="Texto padrão.")
     )
-)
-atualizada = cw.canned_responses.update(
-    1, criada["id"], CannedResponseUpdate(content="Texto corrigido.")
-)
-# A exclusão não tem desfazimento na API:
-# cw.canned_responses.delete(1, criada["id"])
+    atualizada: dict = cw.canned_responses.update(
+        1, criada["id"], CannedResponse(content="Texto revisado.")
+    )
+
+    # DELETE por ID. Não existe restauração automática pela API.
+    cw.canned_responses.delete(1, criada["id"])
 ```
 
-`CannedResponseCreate` exige `short_code` e `content` não vazios; `CannedResponseUpdate` exige ao menos um deles. Os dois contratos não executam HTTP ao serem instanciados. `list_typed` verifica o array e cada objeto retornado; as datas do servidor permanecem como strings ISO. `create/update` preservam também entrada `Mapping[str, Any]`.
+`CannedResponse` contém apenas `short_code` e `content` opcionais; sua dataclass é `frozen=True`. `create()` exige os dois campos e `update()` exige ao menos um. O serializador omite campos `None` e nunca envia metadados de saída. `list()` devolve o array de objetos JSON do Chatwoot (sem envelope `payload`). Não há `list_typed()`, `CannedResponseCreate` nem `CannedResponseUpdate`.
 
-O dashboard usa pesquisa dinâmica local; o cliente envia um único GET com ou sem `search`. A busca do servidor não é obrigada a replicar exatamente a ordenação do frontend. Nenhum conteúdo é automaticamente enviado ao contato, nem variáveis Liquid são substituídas pelo cliente HTTP.
+O dashboard aplica `picoSearch` no frontend; o cliente Python faz uma única chamada GET com `search` e respeita a ordenação do servidor. Variáveis Liquid nos conteúdos não são resolvidas por este cliente.
 
+## Restrições de segurança
+
+Contratos tipados são exigidos nas operações modeladas. O consumidor não deve fornecer `dict` onde existe `TextMessage`, `MediaMessage`, `LabelDefinition` ou `CannedResponse`. Os métodos de recursos ainda não modelados continuam espelhando a API com `Mapping`.
+
+Erros de conexão, HTTP ou JSON inválido geram `ErroAPIChatwoot`, sem vazar dados de resposta. A confirmação da API não representa confirmação de entrega WhatsApp. Não há retry implícito de POST/PATCH/DELETE.
