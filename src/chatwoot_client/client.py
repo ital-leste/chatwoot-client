@@ -149,11 +149,13 @@ class CWClient:
         dados: Mapping[str, Any] | None = None,
         parametros: Mapping[str, Any] | None = None,
         arquivos: list[tuple[str, tuple[str, bytes, str]]] | None = None,
+        formulario: Mapping[str, Any] | None = None,
     ) -> Any:
         try:
             resposta = executar(
                 self._http, self._base_path, metodo, caminho,
                 dados=dados, parametros=parametros, arquivos=arquivos,
+                formulario=formulario,
             )
         except httpx.RequestError:
             raise ErroAPIChatwoot(
