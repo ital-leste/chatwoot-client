@@ -7,7 +7,7 @@ import pytest
 
 from chatwoot_client import (
     CWClient, ConversationStatus, LabelDefinition, MediaMessage, Attachment,
-    MimeType, TextMessage, MessageVisibility, ErroAPIChatwoot,
+    MimeType, TextMessage, ErroAPIChatwoot,
 )
 
 
@@ -89,11 +89,11 @@ def test_nao_envia_voice_flag_para_audio_normal():
     assert b'name="is_voice_message"' not in requests[0].content
 
 
-def test_deprecated_visibility_ainda_funciona():
+def test_private_bool_uso_canonico():
     requests = []
     with client(requests) as cw:
         cw.messages.send_text(
-            1, 2, TextMessage("nota", visibility=MessageVisibility.PRIVATE)
+            1, 2, TextMessage("nota", private=True)
         )
     assert json.loads(requests[0].content)["private"] is True
 
@@ -128,11 +128,11 @@ def test_status_tipado_mantem_rota_oficial(state):
     assert json.loads(requests[0].content)["status"] == state.value
 
 
-def test_status_string_antiga_permanece_compativel():
+def test_status_string_antiga_rejeitada_sem_http():
     requests = []
-    with client(requests) as cw:
+    with client(requests) as cw, pytest.raises(TypeError):
         cw.conversations.set_status(1, 2, "pending")
-    assert json.loads(requests[0].content) == {"status": "pending"}
+    assert not requests
 
 
 def test_add_lê_as_antigas_e_gera_lista_completa_sem_duplicar():
@@ -214,7 +214,7 @@ def test_catalogo_de_etiquetas_tipado():
     requests = []
     definition = LabelDefinition("hermes", "#aabbcc", description="Atendimento", show_on_sidebar=True)
     with client(requests) as cw:
-        cw.labels.create_label(1, definition)
+        cw.labels.create(1, definition)
     assert requests[0].url.path.endswith("/accounts/1/labels")
     assert json.loads(requests[0].content) == {
         "title": "hermes", "color": "#aabbcc",
@@ -236,6 +236,6 @@ def test_etiqueta_invalida(factory):
 def test_catalogo_nao_e_associacao_de_conversa():
     requests = []
     with client(requests) as cw:
-        cw.labels.create_label(1, LabelDefinition("novo", "#112233"))
+        cw.labels.create(1, LabelDefinition("novo", "#112233"))
     assert len(requests) == 1
     assert "/conversations/" not in requests[0].url.path
