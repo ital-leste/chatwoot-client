@@ -20,6 +20,19 @@ from .labels import LabelsResource
 from .messages import MessagesResource
 from .profile import ProfileResource
 from .transport import executar
+from .audit_logs import AuditLogsResource
+from .account_agentbots import AccountAgentBotsResource
+from .canned_responses import CannedResponsesResource
+from .custom_attributes import CustomAttributesResource
+from .contact_labels import ContactLabelsResource
+from .automation_rules import AutomationRulesResource
+from .help_center import HelpCenterResource
+from .integrations import IntegrationsResource
+from .teams import TeamsResource
+from .custom_filters import CustomFiltersResource
+from .webhooks import WebhooksResource
+from .reports import ReportsResource
+from .campaigns import CampaignsResource
 
 
 class ErroConfiguracaoChatwoot(ValueError):
@@ -99,6 +112,19 @@ class CWClient:
         self.conversation_assignments: ConversationAssignmentsResource = ConversationAssignmentsResource(self)
         self.labels: LabelsResource = LabelsResource(self)
         self.messages: MessagesResource = MessagesResource(self)
+        self.audit_logs: AuditLogsResource = AuditLogsResource(self)
+        self.account_agentbots: AccountAgentBotsResource = AccountAgentBotsResource(self)
+        self.canned_responses: CannedResponsesResource = CannedResponsesResource(self)
+        self.custom_attributes: CustomAttributesResource = CustomAttributesResource(self)
+        self.contact_labels: ContactLabelsResource = ContactLabelsResource(self)
+        self.automation_rules: AutomationRulesResource = AutomationRulesResource(self)
+        self.help_center: HelpCenterResource = HelpCenterResource(self)
+        self.integrations: IntegrationsResource = IntegrationsResource(self)
+        self.teams: TeamsResource = TeamsResource(self)
+        self.custom_filters: CustomFiltersResource = CustomFiltersResource(self)
+        self.webhooks: WebhooksResource = WebhooksResource(self)
+        self.reports: ReportsResource = ReportsResource(self)
+        self.campaigns: CampaignsResource = CampaignsResource(self)
 
     @staticmethod
     def _validar_id(valor: int, nome: str) -> None:

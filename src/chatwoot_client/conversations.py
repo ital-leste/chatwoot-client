@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -126,3 +128,94 @@ class ConversationsResource:
         return self._client._exigir_objeto(
             resposta, operacao="filtrar conversas", caminho=caminho
         )
+
+    def meta(self, account_id: int, *, status: str | None = None, q: str | None = None, inbox_id: int | None = None, team_id: int | None = None, labels: list[Any] | None = None, parametros: Mapping[str, Any] | None = None) -> Any:
+        """GET /api/v1/accounts/{account_id}/conversations/meta; retorna JSON ou None."""
+        self._client._validar_id(account_id, "account_id")
+        caminho = f"api/v1/accounts/{account_id}/conversations/meta"
+        consulta: dict[str, Any] = {
+            "status": status,
+            "q": q,
+            "inbox_id": inbox_id,
+            "team_id": team_id,
+            "labels": labels,
+        }
+        consulta = {k: v for k, v in consulta.items() if v is not None}
+        if parametros:
+            consulta.update(parametros)
+        return self._client._solicitar_json("GET", caminho, parametros=consulta)
+
+    def create(self, account_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
+        """POST /api/v1/accounts/{account_id}/conversations; retorna JSON ou None."""
+        self._client._validar_id(account_id, "account_id")
+        if not isinstance(data, Mapping):
+            raise ValueError("data deve ser objeto JSON.")
+        caminho = f"api/v1/accounts/{account_id}/conversations"
+        consulta = parametros
+        return self._client._solicitar_json("POST", caminho, dados=data, parametros=consulta)
+
+    def update(self, account_id: int, conversation_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
+        """PATCH /api/v1/accounts/{account_id}/conversations/{conversation_id}; retorna JSON ou None."""
+        self._client._validar_id(account_id, "account_id")
+        self._client._validar_id(conversation_id, "conversation_id")
+        if not isinstance(data, Mapping):
+            raise ValueError("data deve ser objeto JSON.")
+        caminho = f"api/v1/accounts/{account_id}/conversations/{conversation_id}"
+        consulta = parametros
+        return self._client._solicitar_json("PATCH", caminho, dados=data, parametros=consulta)
+
+    def toggle_priority(self, account_id: int, conversation_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
+        """POST /api/v1/accounts/{account_id}/conversations/{conversation_id}/toggle_priority; retorna JSON ou None."""
+        self._client._validar_id(account_id, "account_id")
+        self._client._validar_id(conversation_id, "conversation_id")
+        if not isinstance(data, Mapping):
+            raise ValueError("data deve ser objeto JSON.")
+        caminho = f"api/v1/accounts/{account_id}/conversations/{conversation_id}/toggle_priority"
+        consulta = parametros
+        return self._client._solicitar_json("POST", caminho, dados=data, parametros=consulta)
+
+    def set_typing_status(self, account_id: int, conversation_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
+        """POST /api/v1/accounts/{account_id}/conversations/{conversation_id}/toggle_typing_status; retorna JSON ou None."""
+        self._client._validar_id(account_id, "account_id")
+        self._client._validar_id(conversation_id, "conversation_id")
+        if not isinstance(data, Mapping):
+            raise ValueError("data deve ser objeto JSON.")
+        caminho = f"api/v1/accounts/{account_id}/conversations/{conversation_id}/toggle_typing_status"
+        consulta = parametros
+        return self._client._solicitar_json("POST", caminho, dados=data, parametros=consulta)
+
+    def update_last_seen(self, account_id: int, conversation_id: int, *, parametros: Mapping[str, Any] | None = None) -> Any:
+        """POST /api/v1/accounts/{account_id}/conversations/{conversation_id}/update_last_seen; retorna JSON ou None."""
+        self._client._validar_id(account_id, "account_id")
+        self._client._validar_id(conversation_id, "conversation_id")
+        caminho = f"api/v1/accounts/{account_id}/conversations/{conversation_id}/update_last_seen"
+        consulta = parametros
+        return self._client._solicitar_json("POST", caminho, parametros=consulta)
+
+    def update_custom_attributes(self, account_id: int, conversation_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
+        """POST /api/v1/accounts/{account_id}/conversations/{conversation_id}/custom_attributes; retorna JSON ou None."""
+        self._client._validar_id(account_id, "account_id")
+        self._client._validar_id(conversation_id, "conversation_id")
+        if not isinstance(data, Mapping):
+            raise ValueError("data deve ser objeto JSON.")
+        caminho = f"api/v1/accounts/{account_id}/conversations/{conversation_id}/custom_attributes"
+        consulta = parametros
+        return self._client._solicitar_json("POST", caminho, dados=data, parametros=consulta)
+
+    def delete_custom_attributes(self, account_id: int, conversation_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
+        """POST /api/v1/accounts/{account_id}/conversations/{conversation_id}/destroy_custom_attributes; retorna JSON ou None."""
+        self._client._validar_id(account_id, "account_id")
+        self._client._validar_id(conversation_id, "conversation_id")
+        if not isinstance(data, Mapping):
+            raise ValueError("data deve ser objeto JSON.")
+        caminho = f"api/v1/accounts/{account_id}/conversations/{conversation_id}/destroy_custom_attributes"
+        consulta = parametros
+        return self._client._solicitar_json("POST", caminho, dados=data, parametros=consulta)
+
+    def reporting_events(self, account_id: int, conversation_id: int, *, parametros: Mapping[str, Any] | None = None) -> Any:
+        """GET /api/v1/accounts/{account_id}/conversations/{conversation_id}/reporting_events; retorna JSON ou None."""
+        self._client._validar_id(account_id, "account_id")
+        self._client._validar_id(conversation_id, "conversation_id")
+        caminho = f"api/v1/accounts/{account_id}/conversations/{conversation_id}/reporting_events"
+        consulta = parametros
+        return self._client._solicitar_json("GET", caminho, parametros=consulta)

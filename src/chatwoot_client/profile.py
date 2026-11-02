@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -23,3 +25,11 @@ class ProfileResource:
             operacao="consultar o perfil",
             caminho=path,
         )
+
+    def update(self, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
+        """PUT /api/v1/profile; retorna JSON ou None."""
+        if not isinstance(data, Mapping):
+            raise ValueError("data deve ser objeto JSON.")
+        caminho = f"api/v1/profile"
+        consulta = parametros
+        return self._client._solicitar_json("PUT", caminho, dados=data, parametros=consulta)

@@ -22,7 +22,7 @@ def cliente(handler, modo="bearer"):
 
 def test_sem_conteudo_204():
     with cliente(lambda req: httpx.Response(204)) as cw:
-        assert cw.messages.create(1, 2, content="teste") is None
+        assert cw._solicitar_json("DELETE", "api/v1/accounts/1/teams/2") is None
 
 
 def test_autenticacao_legada():

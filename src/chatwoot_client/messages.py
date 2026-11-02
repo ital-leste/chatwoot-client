@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -129,3 +131,22 @@ class MessagesResource:
             resposta, operacao="enviar anexos", caminho=caminho
         )
 
+    def update_status(self, account_id: int, conversation_id: int, message_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
+        """PATCH /api/v1/accounts/{account_id}/conversations/{conversation_id}/messages/{message_id}; retorna JSON ou None."""
+        self._client._validar_id(account_id, "account_id")
+        self._client._validar_id(conversation_id, "conversation_id")
+        self._client._validar_id(message_id, "message_id")
+        if not isinstance(data, Mapping):
+            raise ValueError("data deve ser objeto JSON.")
+        caminho = f"api/v1/accounts/{account_id}/conversations/{conversation_id}/messages/{message_id}"
+        consulta = parametros
+        return self._client._solicitar_json("PATCH", caminho, dados=data, parametros=consulta)
+
+    def delete(self, account_id: int, conversation_id: int, message_id: int, *, parametros: Mapping[str, Any] | None = None) -> Any:
+        """DELETE /api/v1/accounts/{account_id}/conversations/{conversation_id}/messages/{message_id}; retorna JSON ou None."""
+        self._client._validar_id(account_id, "account_id")
+        self._client._validar_id(conversation_id, "conversation_id")
+        self._client._validar_id(message_id, "message_id")
+        caminho = f"api/v1/accounts/{account_id}/conversations/{conversation_id}/messages/{message_id}"
+        consulta = parametros
+        return self._client._solicitar_json("DELETE", caminho, parametros=consulta)
