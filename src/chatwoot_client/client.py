@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping
-from typing import Any
+from collections.abc import Mapping, Sequence
+from typing import Any, BinaryIO
 from urllib.parse import urlsplit
 
 import httpx
@@ -141,16 +141,20 @@ class CWClient:
             raise ValueError(f"{nome} não pode ser vazio.")
         return quote(str(valor), safe="")
 
-    def _solicitar_json(
+    def _request(
         self,
         metodo: str,
         caminho: str,
         *,
         dados: Mapping[str, Any] | None = None,
         parametros: Mapping[str, Any] | None = None,
-        arquivos: list[tuple[str, tuple[str, bytes, str]]] | None = None,
+        arquivos: Sequence[tuple[str, tuple[str, bytes | BinaryIO, str]]] | None = None,
         formulario: Mapping[str, Any] | None = None,
     ) -> Any:
+        """Único caminho de execução HTTP, sem retry automático.
+
+        As operações por recurso não precisam conhecer httpx ou autenticação.
+        """
         try:
             resposta = executar(
                 self._http, self._base_path, metodo, caminho,
@@ -179,6 +183,37 @@ class CWClient:
                 f"Chatwoot retornou JSON inválido para {metodo} {caminho}.",
                 caminho=caminho, status_http=resposta.status_code,
             ) from None
+
+    def _get(self, caminho: str, **kwargs: Any) -> Any:
+        return self._request("GET", caminho, **kwargs)
+
+    def _post(self, caminho: str, **kwargs: Any) -> Any:
+        return self._request("POST", caminho, **kwargs)
+
+    def _put(self, caminho: str, **kwargs: Any) -> Any:
+        return self._request("PUT", caminho, **kwargs)
+
+    def _patch(self, caminho: str, **kwargs: Any) -> Any:
+        return self._request("PATCH", caminho, **kwargs)
+
+    def _delete(self, caminho: str, **kwargs: Any) -> Any:
+        return self._request("DELETE", caminho, **kwargs)
+
+    def _solicitar_json(
+        self,
+        metodo: str,
+        caminho: str,
+        *,
+        dados: Mapping[str, Any] | None = None,
+        parametros: Mapping[str, Any] | None = None,
+        arquivos: Sequence[tuple[str, tuple[str, bytes | BinaryIO, str]]] | None = None,
+        formulario: Mapping[str, Any] | None = None,
+    ) -> Any:
+        """Adaptador retrocompatível para os recursos existentes."""
+        return self._request(
+            metodo, caminho, dados=dados, parametros=parametros,
+            arquivos=arquivos, formulario=formulario,
+        )
 
     @staticmethod
     def _exigir_objeto(

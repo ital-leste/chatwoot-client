@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, BinaryIO
 import httpx
 
 
@@ -14,7 +14,7 @@ def executar(
     *,
     dados: Mapping[str, Any] | None = None,
     parametros: Mapping[str, Any] | None = None,
-    arquivos: Sequence[tuple[str, tuple[str, bytes, str]]] | None = None,
+    arquivos: Sequence[tuple[str, tuple[str, bytes | BinaryIO, str]]] | None = None,
     formulario: Mapping[str, Any] | None = None,
 ) -> httpx.Response:
     relativo = caminho.lstrip("/")
