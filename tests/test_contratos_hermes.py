@@ -20,7 +20,7 @@ def client(requests, *, current_labels=None, status=200, on_request=None):
             return on_request(req)
         if req.method == "GET" and req.url.path.endswith("/labels"):
             return httpx.Response(200, json={"payload": list(current_labels)})
-        if req.method == "POST" and req.url.path.endswith("/labels"):
+        if req.method == "POST" and "/conversations/" in req.url.path and req.url.path.endswith("/labels"):
             return httpx.Response(200, json={"payload": json.loads(req.content)["labels"]})
         return httpx.Response(status, json={"id": 77})
     cw = CWClient("https://cw.example", "token")
