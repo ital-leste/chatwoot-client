@@ -34,3 +34,14 @@ Testes simulados não comprovam compatibilidade operacional em servidor real. A 
 - Resposta GET inválida/HTTP 5xx: confirmar que `add` não envia POST.
 - Concorrência: simular duas alterações em uma conversa e confirmar a necessidade de ordenação por conversa no executor Hermes.
 - Mensagem de voz: testar o flag `is_voice_message` com `audio/ogg`, sem pressupor paridade dos adaptadores Evolution e WhatsApp Cloud.
+
+## Canned Responses — cenários de homologação
+
+1. Executar `list(1)` e `list_typed(1)`, conferindo o retorno da lista completa de uma conta de teste.
+2. Consultar `search="termo"` por parte do atalho e por parte do conteúdo; conferir que ambas as consultas utilizam GET e que a ordenação acompanha o servidor.
+3. Exercitar `CannedResponseCreate` e atualização parcial com `CannedResponseUpdate`, confirmando visualização no dashboard humano.
+4. Verificar compatibilidade de `list(1, parametros={"search": "..."})` e dos payloads `Mapping` antigos.
+5. Testar entrada inválida, lista vazia, formato JSON inesperado, status 403 e atalho duplicado.
+6. Excluir somente uma resposta criada para homologação, com autorização explícita, pois não há restauração pela API.
+7. Confirmar que a biblioteca não envia mensagens nem permite que um agente edite o catálogo sem autorização do consumidor.
+

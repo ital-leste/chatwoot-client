@@ -136,7 +136,8 @@ def test_criacao_tipadas_json_campos_oficiais():
     assert requests[0].url.path == "/api/v1/accounts/1/canned_responses"
     assert requests[0].read().decode().find("canned_response") == -1
     assert requests[0].headers["content-type"].startswith("application/json")
-    assert requests[0].content == b'{"short_code":"gnv","content":"Fa\\u00e7a inspe\\u00e7\\u00e3o."}' or __import__("json").loads(requests[0].content) == {"short_code": "gnv", "content": "Faça inspeção."}
+    import json
+    assert json.loads(requests[0].content) == {"short_code": "gnv", "content": "Faça inspeção."}
 
 
 def test_update_tipado_parcial_e_patch():

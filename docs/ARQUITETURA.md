@@ -42,3 +42,12 @@ O endpoint de etiquetas da conversa é uma substituição completa, não um appe
 ## Compatibilidade de mensagens
 
 `private` é o campo booleano da API. `visibility=MessageVisibility.PRIVATE` segue aceito nas dataclasses para preservar código criado na primeira evolução; interfaces novas devem preferir `private=True`. Mensagens de voz utilizam `is_voice_message` no multipart, parâmetro observado no código-fonte 4.19.0 e não presente na especificação OpenAPI consultada. Validar entrega final por canal.
+
+## Canned Responses
+
+`models/canned_responses.py` contém os contratos imutáveis `CannedResponse`, `CannedResponseCreate` e `CannedResponseUpdate`. `canned_responses.py` orquestra GET, POST, PATCH e DELETE, utilizando os verbos privados de `CWClient`. Esses modelos são expostos em `chatwoot_client/__init__.py`.
+
+`list()` preserva o JSON original e aceita opcionalmente `search` (ou o parâmetro legado `parametros`); `list_typed()` usa a mesma consulta e converte a lista em contratos validados. Sem `search`, a API lista tudo; com `search`, filtra por `short_code` ou `content` no próprio servidor. A resposta é array JSON, não `{"payload": ...}`. Não há cache nem busca dinâmica no cliente Python.
+
+O catálogo é compartilhado com agentes humanos. O cliente não valida autorização de negócio, não interpreta variáveis Liquid, não cria versões e não implementa restauração após exclusão. O consumidor (por exemplo, Hermes) deve controlar permissões para operações de escrita.
+

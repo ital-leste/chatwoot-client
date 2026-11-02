@@ -2,6 +2,11 @@
 
 ## Unreleased — homolog
 
+- Respostas rápidas: listagem GET com filtro `search` opcional e consulta tipada `list_typed`.
+- Contratos `CannedResponse`, `CannedResponseCreate` e `CannedResponseUpdate` exportados pela raiz do pacote.
+- Escritas anteriores com `Mapping` e consulta `parametros={"search": ...}` preservadas.
+
+
 - Mensagens tipadas simplificadas com `private: bool` e `send_media` como interface preferencial; `MessageVisibility` continua como alias de compatibilidade.
 - `MediaMessage.is_voice_message` habilita marcador oficial do builder Chatwoot para arquivo OGG.
 - `ConversationStatus` exportado na raiz e aceito por `conversations.set_status` sem quebrar strings originais.

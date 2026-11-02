@@ -87,3 +87,24 @@ Cobertura de código de 124 operações da Application API do Chatwoot v4.19.0. 
 - [Homologação](docs/HOMOLOGACAO.md)
 
 A autenticação padrão é Bearer; auth_mode="api_access_token" ativa o cabeçalho legado. Anexos podem ser enviados por messages.create_with_attachments(). Nenhuma escrita é repetida automaticamente após timeout.
+
+## Canned Responses tipadas (homologação)
+
+Listagem e busca usam a mesma rota GET do Chatwoot 4.19.0. Sem `search`, retorna todas as respostas rápidas da conta; com `search`, o servidor pesquisa por atalho ou conteúdo.
+
+```python
+from chatwoot_client import CWClient, CannedResponseCreate, CannedResponseUpdate
+
+with CWClient(URL, TOKEN) as cw:
+    todas = cw.canned_responses.list_typed(1)
+    filtradas = cw.canned_responses.list_typed(1, search="gnv")
+    criada = cw.canned_responses.create(
+        1, CannedResponseCreate("gnv_periodica", "Texto de atendimento.")
+    )
+    cw.canned_responses.update(
+        1, criada["id"], CannedResponseUpdate(content="Texto revisado.")
+    )
+```
+
+`list()` permanece compatível e retorna JSON bruto: `list(1)`, `list(1, search="gnv")` ou `list(1, parametros={"search": "gnv"})`. `list_typed()` retorna `list[CannedResponse]` validada. Não existe filtro dinâmico local no cliente Python nem alteração automática do catálogo pelo Hermes.
+

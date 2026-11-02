@@ -135,3 +135,40 @@ cw.conversation_labels.replace(1, 2, ["aguardando-laudo"])
 ```
 
 `add` e `remove` executam GET das etiquetas existentes e POST da lista consolidada apenas quando necessário. A resposta GET deve conter `{"payload": ["etiqueta", ...]}`; se estiver inválida, a biblioteca falha sem executar substituição potencialmente destrutiva. Essas operações não são atômicas: para várias automações alterando a mesma conversa, serializar no executor/worker por `account_id` e `conversation_id` é necessário para evitar lost updates. `cw.labels.create_label` não cria associações por conta própria; não existe criação automática de etiquetas desconhecidas ao chamar `add`.
+
+## Respostas rápidas — catálogo e filtros
+
+O recurso `canned_responses` oferece GET de todas as respostas ou de respostas filtradas, usando o mesmo endpoint. O filtro `search` é aplicado no banco do Chatwoot 4.19.0 sobre `short_code` e `content`; a ordenação é determinada pelo servidor.
+
+```python
+from chatwoot_client import CannedResponse, CannedResponseCreate, CannedResponseUpdate
+
+# Retorno legado: lista JSON sem envelope payload.
+todas_raw = cw.canned_responses.list(1)
+filtradas_raw = cw.canned_responses.list(1, search="gnv")
+legado = cw.canned_responses.list(1, parametros={"search": "gnv"})
+
+# Contrato tipado: mesma consulta GET, sem filtros locais.
+todas = cw.canned_responses.list_typed(1)
+filtradas = cw.canned_responses.list_typed(1, search="gnv")
+for resposta in filtradas:
+    assert isinstance(resposta, CannedResponse)
+    print(resposta.short_code, resposta.content)
+
+# Escrita tipada, mantendo métodos e respostas JSON atuais.
+criada = cw.canned_responses.create(
+    1, CannedResponseCreate(
+        short_code="inspecao_gnv", content="Consulte os documentos exigidos."
+    )
+)
+atualizada = cw.canned_responses.update(
+    1, criada["id"], CannedResponseUpdate(content="Texto corrigido.")
+)
+# A exclusão não tem desfazimento na API:
+# cw.canned_responses.delete(1, criada["id"])
+```
+
+`CannedResponseCreate` exige `short_code` e `content` não vazios; `CannedResponseUpdate` exige ao menos um deles. Os dois contratos não executam HTTP ao serem instanciados. `list_typed` verifica o array e cada objeto retornado; as datas do servidor permanecem como strings ISO. `create/update` preservam também entrada `Mapping[str, Any]`.
+
+O dashboard usa pesquisa dinâmica local; o cliente envia um único GET com ou sem `search`. A busca do servidor não é obrigada a replicar exatamente a ordenação do frontend. Nenhum conteúdo é automaticamente enviado ao contato, nem variáveis Liquid são substituídas pelo cliente HTTP.
+
