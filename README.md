@@ -43,3 +43,17 @@ Este repositório é privado. Aplicações externas devem utilizá-lo como depen
 Toda evolução do transporte Chatwoot acontece neste repositório. O projeto `chawoot-hermes-agent` importa esta biblioteca, e mantém apenas as decisões de webhook, admissibilidade, persistência, debounce, worker e integração Hermes. Esta extração não autoriza publicação real ou handoff.
 
 Origem: `src/chatwoot_hermes_agent/gateway/chatwoot/` do commit `122ab821`.
+
+## Expansão da Application API (homolog)
+
+Cobertura de código de 124 operações da Application API do Chatwoot v4.19.0. Os contratos anteriores continuam presentes; os novos recursos aceitam payloads data e parâmetros de consulta. Os testes simulados não substituem homologação real da instalação.
+
+- [Arquitetura](docs/ARQUITETURA.md)
+- [Matriz dos endpoints](docs/MATRIZ_API.md)
+- [Contratos HTTP](docs/CONTRATOS_HTTP.md)
+- [Autenticação](docs/AUTENTICACAO.md)
+- [Guia de utilização](docs/GUIA_UTILIZACAO.md)
+- [Compatibilidade](docs/COMPATIBILIDADE.md)
+- [Homologação](docs/HOMOLOGACAO.md)
+
+A autenticação padrão é Bearer; auth_mode="api_access_token" ativa o cabeçalho legado. Anexos podem ser enviados por messages.create_with_attachments(). Nenhuma escrita é repetida automaticamente após timeout.
