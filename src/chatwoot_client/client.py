@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import json
 from collections.abc import Mapping, Sequence
 from typing import Any, BinaryIO
 from urllib.parse import urlsplit
@@ -157,6 +158,13 @@ class CWClient:
 
         As operações por recurso não precisam conhecer httpx ou autenticação.
         """
+        if dados is not None:
+            if not isinstance(dados, Mapping) or any(not isinstance(k, str) for k in dados):
+                raise ValueError("dados deve ser objeto JSON com chaves de texto.")
+            try:
+                json.dumps(dict(dados), allow_nan=False)
+            except (TypeError, ValueError, OverflowError, RecursionError) as exc:
+                raise ValueError("dados deve ser um objeto serializável em JSON.") from exc
         try:
             resposta = executar(
                 self._http, self._base_path, metodo, caminho,
