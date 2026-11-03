@@ -8,7 +8,7 @@ Cliente Python independente para a **Application API do Chatwoot 4.19.0**. A bib
 
 ```python
 from chatwoot_client import (
-    CWClient, TextMessage, MediaMessage,
+    CWClient, TextMessage, MediaMessage, Contact,
     Attachment, MimeType, LabelDefinition, ConversationStatus,
 )
 
@@ -29,6 +29,9 @@ with CWClient("https://chatwoot.exemplo", "TOKEN") as cw:
     # Etiqueta por contrato; adicionar à conversa sem apagar as antigas
     cw.labels.create(1, LabelDefinition("aguardando-laudo", "#224466"))
     cw.conversation_labels.add(1, 2, "aguardando-laudo")
+
+    # Atualização de contato: não altera campos omitidos
+    contato = cw.contacts.update(1, 42, Contact(name="Maria Souza"))
 
     # Canned Responses: parâmetros nomeados e JSON nativo de saída
     criada = cw.canned_responses.create(

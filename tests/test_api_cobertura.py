@@ -1,7 +1,7 @@
 """Contratos HTTP de 108 operações novas (OpenAPI Chatwoot 4.19.0)."""
 import httpx
 import pytest
-from chatwoot_client import CWClient
+from chatwoot_client import CWClient, Contact
 
 CASOS = [
   [
@@ -252,9 +252,7 @@ CASOS = [
     "create",
     [
       1,
-      {
-        "name": "teste"
-      }
+      Contact(name="teste")
     ],
     {},
     "POST",
@@ -267,9 +265,7 @@ CASOS = [
     [
       1,
       1,
-      {
-        "name": "teste"
-      }
+      Contact(name="teste")
     ],
     {},
     "PUT",

@@ -2,6 +2,9 @@
 
 ## Unreleased — homolog
 
+- Contacts: contrato de entrada imutável `Contact` para criação e atualização; campos omitidos preservados no JSON de PUT; `None` explícito enviado como `null` e validação local de formatos e tipos.
+- `contacts.create()` aceita associação opcional à inbox por `inbox_id`/`source_id`; respostas continuam JSON nativo. Exclusão e métodos de leitura não foram alterados.
+
 - Regra oficial: **parâmetros nomeados e tipados para entradas simples, contratos de domínio quando necessários; retorno JSON nativo da API**.
 - Canned Responses deixam de ter dataclass: `create(short_code=..., content=...)` exige ambos, `update(..., short_code=None, content=None)` exige pelo menos um e `list(search=None)` mantém GET integral/filtrado com retorno `list[dict]`.
 - Removidas as interfaces `CannedResponse`, `list_typed`, `CannedResponseCreate` e `CannedResponseUpdate`; não há entrada alternativa `Mapping` nas respostas rápidas.

@@ -12,7 +12,7 @@ Tipos primitivos como IDs, parâmetros de busca, booleanos e paginação não ju
 
 - `client.py`: composição dos recursos; transporte HTTP compartilhado em `_request`; cabeçalhos; exceções; os métodos privados `_get/_post/_put/_patch/_delete`; `_solicitar_json` como adaptador interno dos recursos não refatorados.
 - `transport.py`: execução HTTP, serialização JSON, multipart e formulário.
-- `models/`: contratos imutáveis de **entrada** quando agregam estrutura ou regras (`TextMessage`, `MediaMessage`, `Attachment`, `LabelDefinition`); Canned Responses usam parâmetros simples.
+- `models/`: contratos imutáveis de **entrada** quando agregam estrutura ou regras (`TextMessage`, `MediaMessage`, `Attachment`, `LabelDefinition`, `Contact`); Canned Responses usam parâmetros simples.
 - `enums/`: tipos de mensagens, MIME, conteúdo e estados de conversa.
 - `message_payload.py`: serialização de texto/mídia para os campos oficiais.
 - `attachment_resolver.py`: caminhos, bytes, streams e downloads HTTPS com limites.
@@ -21,6 +21,16 @@ Tipos primitivos como IDs, parâmetros de busca, booleanos e paginação não ju
 - `conversation_labels.py`: `add/remove` consolidam listas por GET + POST, `replace` substitui integralmente.
 - `conversations.py`: `set_status(ConversationStatus)` exige enum; consultas de conversas preservam JSON nativo.
 - `canned_responses.py`: `list(search=None)` faz GET completo/filtrado; `create(short_code=..., content=...)` e `update(short_code=None, content=None)` validam entradas simples; `delete(id)` remove.
+
+## Contatos: contrato único e atualização não destrutiva
+
+`Contact` é uma dataclass imutável de **entrada** para `contacts.create(account_id, contact, inbox_id=None, source_id=None)` e `contacts.update(account_id, contact_id, contact)`. As respostas continuam como JSON bruto da API. Criação aceita `inbox_id` opcional como no controlador Chatwoot 4.19.0; `source_id` só faz sentido junto à inbox.
+
+**Regra oficial para atualizações parciais:** um campo *omitido* no objeto Python não pode ser serializado, não pode ser substituído por `None` e não exige uma leitura prévia do contato. O modelo distingue ausência de `None` explícito por marcador privado. Assim, `Contact(name="Maria")` gera exatamente `{"name": "Maria"}`; `Contact(email=None)` gera `{"email": null}` e delega a limpeza às regras do Chatwoot. `False` e dicionários vazios explicitamente informados não são filtrados por verdade/falsidade.
+
+`Contact` contém somente os campos de cadastro suportados pelo payload JSON nesta etapa. E-mail possui checagem simples, telefone segue E.164, `blocked` exige bool e dicionários de atributos precisam ser JSON válidos. Validações de unicidade, disponibilidade de campos, permissões e comportamento de `null` são responsabilidade do backend. Nenhum campo de saída (`id`, timestamps, inboxes, etc.) entra na dataclass.
+
+A API utiliza `PUT` na especificação, e o controlador também permite `PATCH`. O cliente preserva `PUT`, enviando **somente** os campos do objeto informados. O Rails realiza atualização parcial e mescla chaves de `additional_attributes`/`custom_attributes` em vez de substituir o objeto inteiro. A criação/atualização de avatar binário por multipart será tratada separadamente; `avatar_url` é aceita como string pelo contrato.
 
 ## Respostas rápidas
 

@@ -22,6 +22,9 @@ Os testes usam `httpx.MockTransport` e não podem enviar mensagens reais, exclui
 8. Confirmar que `CannedResponse`, `list_typed`, `CannedResponseCreate`, `CannedResponseUpdate`, `messages.create`, `messages.create_with_attachments`, `send_document`, `labels.create_label` e `MessageVisibility` não são interfaces públicas oficiais.
 9. Testar HTTP 403/422/503, JSON inválido e corpo vazio, sem retry automático de escrita; confirmar que campos extras de retorno não são descartados.
 10. Confirmar que os recursos sem contratos específicos continuam podendo utilizar payloads da API, mantendo cobertura dos verbos/rotas da matriz.
+11. Para Contacts, criar/atualizar com `Contact`, garantindo que `Contact(name="Novo")` envie somente `name`, não leia o contato previamente e não produza chaves `email`, `phone_number` ou outras ausentes.
+12. Diferenciar `Contact(email=None)` (JSON `null`) de e-mail omitido; manter `blocked=False`, dicionários vazios e mesclagem dos atributos sob a regra do backend.
+13. Rejeitar antes do HTTP e-mail inválido, telefone fora de E.164, payload vazio, objetos com campos inválidos e dados não JSON; verificar create com inbox e retorno `payload.contact`.
 
 ## Homologação integrada posterior
 

@@ -7,7 +7,7 @@ Instalação: `python -m pip install -e ".[test]"`. Validação: `python -m pyte
 ```python
 from chatwoot_client import (
     CWClient, TextMessage, MediaMessage, Attachment,
-    MimeType, MessageType, ConversationStatus,
+    MimeType, MessageType, ConversationStatus, Contact,
     LabelDefinition, ErroAPIChatwoot, ErroAnexoChatwoot,
 )
 ```
@@ -111,6 +111,41 @@ cw.conversation_labels.replace(1, 2, ["aguardando-laudo"])
 ```
 
 `replace()` substitui toda a lista. `add()` e `remove()` leem a lista atual e escrevem o conjunto consolidado, preservando as demais etiquetas, mas **não são operações atômicas**. O executor deve serializar operações concorrentes por conversa. A criação de uma etiqueta no catálogo não a associa automaticamente à conversa. Outros métodos de etiqueta que ainda não possuem contrato (como atualização parcial) permanecem com os parâmetros da API.
+
+## Contatos — dataclass de entrada e preservação de campos
+
+`Contact` representa os campos a escrever, não um objeto de retorno. A mesma dataclass é utilizada na criação e na atualização.
+
+```python
+from chatwoot_client import Contact
+
+# Criação: inbox_id é opcional no controlador do Chatwoot 4.19.0
+criado = cw.contacts.create(
+    1,
+    Contact(name="Maria", phone_number="+5511999999999", email="maria@exemplo.com"),
+    inbox_id=1,
+)
+novo_id = criado["payload"]["contact"]["id"]
+
+# Atualização pontual: o e-mail e o telefone cadastrados NÃO são enviados.
+atualizado = cw.contacts.update(1, novo_id, Contact(name="Maria Souza"))
+
+# Limpeza intencional: somente email será enviado como JSON null;
+# o Chatwoot decide se a operação é permitida para esse campo.
+cw.contacts.update(1, novo_id, Contact(email=None))
+
+# False é um valor explícito, não deve ser omitido.
+cw.contacts.update(1, novo_id, Contact(blocked=False))
+
+# Atributos extras: a API mescla as chaves fornecidas às existentes.
+cw.contacts.update(1, novo_id, Contact(
+    custom_attributes={"tipo_veiculo": "automovel"}
+))
+```
+
+**Garantia do cliente:** um campo não informado no `Contact(...)` não entra no JSON de atualização. Os atributos existentes são preservados pelo comportamento de atualização parcial do Chatwoot, sem precisar realizar GET anterior. Não confundir campo omitido com `None` explicitamente informado; este último será serializado como `null`, e o resultado depende das regras do servidor. Para não reenviar campos antigos, crie um `Contact` com apenas os campos que deseja alterar.
+
+Os validadores locais verificam formatos simples de e-mail, E.164 para telefone, tipos básicos e objetos JSON válidos, mas a conta Chatwoot continua validando unicidade e atributos configurados. O contrato não contempla `avatar` binário nesta fase; `avatar_url` é suportada.
 
 ## Respostas rápidas — parâmetros nomeados
 

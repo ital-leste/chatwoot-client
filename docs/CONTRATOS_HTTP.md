@@ -11,6 +11,7 @@ Documentação-fonte: https://github.com/chatwoot/chatwoot/blob/v4.19.0/swagger/
 - Paginação: sem agregação automática; envelopes, contadores e cursores permanecem intactos.
 - Retry: ausente em escritas. Um timeout após POST pode significar resultado indeterminado.
 - Entradas: parâmetros Python nomeados e tipados para casos simples, contratos imutáveis para estruturas mais complexas; recursos sem contratos específicos recebem os argumentos documentados pela API.
+- Atualizações parciais: campos omitidos não são serializados nem substituídos por `None`; quando a API permite `null` explícito, a entrada distingue os dois estados (em Contacts, via marcador privado). Não é feita leitura automática anterior à escrita.
 - Saídas: JSON nativo do Chatwoot, com verificação de formato quando o endpoint o define. Nenhum DTO de saída obrigatório.
 
 A biblioteca não traduz respostas da API para DTOs obrigatórios. O servidor continua responsável por verificar permissões e validade de parâmetros específicos.
