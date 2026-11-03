@@ -32,7 +32,7 @@ Os testes usam `httpx.MockTransport` e não podem enviar mensagens reais, exclui
 18. Testar saída `None` para `head :ok`, status/handoff por `set_status()` e que os recursos de conversas preservam as 13 rotas HTTP oficiais.
 
 19. Confirmar que URL de configuração com tipo inválido gera `ErroConfiguracaoChatwoot`, não `AttributeError`.
-20. Confirmar que objetos JSON recebidos por `Contact` e `ConversationCreate` são copiados e revalidados na serialização, sem permitir dados não JSON após a construção.
+20. Confirmar que objetos JSON recebidos por `Contact` e `ConversationCreate` são copiados e revalidados na serialização, sem permitir dados não JSON nem uma mensagem sem `content` válido após a construção.
 21. Rejeitar cursores de mensagens com tipos incorretos e valores negativos antes de HTTP, preservando o cursor zero usado em integrações existentes.
 
 ## Homologação integrada posterior

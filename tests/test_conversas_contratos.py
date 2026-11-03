@@ -82,7 +82,7 @@ def test_prioridade_tipadas_e_none_explicitamente_indicado():
         cw.conversations.update(1, 9, priority=ConversationPriority.HIGH)
         cw.conversations.update(1, 9, priority=None)
         cw.conversations.toggle_priority(1, 9, priority=ConversationPriority.LOW)
-        cw.conversations.toggle_priority(1, 9)
+        cw.conversations.toggle_priority(1, 9, priority=None)
     assert [r.method for r in chamadas] == ["PATCH", "PATCH", "POST", "POST"]
     assert [json.loads(r.content) for r in chamadas] == [
         {"priority": "high"}, {"priority": None},
@@ -159,6 +159,7 @@ def test_filtro_structuralmente_invalido(parametros):
     lambda cw: cw.conversations.create(1, {"source_id": "x"}),
     lambda cw: cw.conversations.update(1, 9, priority="high"),
     lambda cw: cw.conversations.toggle_priority(1, 9, priority="low"),
+    lambda cw: cw.conversations.toggle_priority(1, 9),
     lambda cw: cw.conversations.set_typing_status(1, 9, typing_status="writing"),
     lambda cw: cw.conversations.set_typing_status(1, 9, typing_status="on", is_private=1),
     lambda cw: cw.conversations.filter(1, [{"attribute_key": "name"}]),
@@ -204,7 +205,7 @@ def test_get_list_meta_filter_preservam_envelopes_diferentes():
 def test_operacoes_head_sem_corpo_retorna_none():
     chamadas = []
     with _client(chamadas, handler=lambda req: httpx.Response(200, content=b"")) as cw:
-        assert cw.conversations.toggle_priority(1, 2) is None
+        assert cw.conversations.toggle_priority(1, 2, priority=None) is None
         assert cw.conversations.set_typing_status(1, 2, typing_status="on") is None
 
 

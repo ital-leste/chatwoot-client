@@ -80,6 +80,10 @@ class ConversationCreate:
             if isinstance(valor, Mapping):
                 # Revalidar e copiar para impedir alterações posteriores no payload.
                 valor = _json_objeto(valor, campo.name)
+                if campo.name == "message" and (
+                    not isinstance(valor.get("content"), str) or not valor["content"].strip()
+                ):
+                    raise ValueError("message.content deve ser texto não vazio.")
             elif isinstance(valor, ConversationStatus):
                 valor = valor.value
             resultado[campo.name] = valor

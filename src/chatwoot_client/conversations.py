@@ -231,9 +231,9 @@ class ConversationsResource:
         account_id: int,
         conversation_id: int,
         *,
-        priority: ConversationPriority | None = None,
+        priority: ConversationPriority | None,
     ) -> None:
-        """POST: prioridade explícita ou None para limpar (API sem corpo)."""
+        """POST: exige prioridade explícita (None limpa), API sem corpo."""
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(conversation_id, "conversation_id")
         dados = {"priority": self._validar_prioridade(priority)}

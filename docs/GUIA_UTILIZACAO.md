@@ -143,6 +143,7 @@ nova = cw.conversations.create(
 # Prioridade: enum obrigatório; None explícito limpa o valor anterior.
 cw.conversations.update(1, 9, priority=ConversationPriority.HIGH)
 cw.conversations.update(1, 9, priority=None)
+cw.conversations.toggle_priority(1, 9, priority=ConversationPriority.LOW)
 
 # Estado explicitamente definido; snoozed_until em Unix segundos.
 cw.conversations.set_status(1, 9, ConversationStatus.PENDING)
@@ -170,7 +171,7 @@ cw.conversations.update_custom_attributes(
 cw.conversations.delete_custom_attributes(1, 9, keys=["interesse"])
 ```
 
-`create()` exige `ConversationCreate`. Os métodos simples não possuem dataclasses redundantes. `update()` opera sobre prioridade; `priority=None` é uma solicitação **explícita** de limpeza (não é ausência). O contrato `FilterCondition` usa os mesmos campos de filtro no Chatwoot para contatos e conversas. Sua validação é estrutural; a validade de cada operador para cada atributo cabe ao backend.
+`create()` exige `ConversationCreate`. Os métodos simples não possuem dataclasses redundantes. `update()` e `toggle_priority()` operam sobre prioridade; em ambos, o parâmetro `priority` deve ser fornecido. `priority=None` é uma solicitação **explícita** de limpeza (não é ausência). O contrato `FilterCondition` usa os mesmos campos de filtro no Chatwoot para contatos e conversas. Sua validação é estrutural; a validade de cada operador para cada atributo cabe ao backend.
 
 **Retornos diferentes permanecem diferentes:** `conversations.list()` usa envelope `data.meta/data.payload`; `conversations.filter()` usa `meta/payload`; `conversations.get/create/update()` devolvem objetos, não DTOs. `toggle_priority()` e `set_typing_status()` normalmente retornam `None` (HTTP sem corpo).
 
