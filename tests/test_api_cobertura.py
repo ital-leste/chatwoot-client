@@ -1,7 +1,7 @@
 """Contratos HTTP de 108 operações novas (OpenAPI Chatwoot 4.19.0)."""
 import httpx
 import pytest
-from chatwoot_client import CWClient, Contact
+from chatwoot_client import CWClient, Contact, ConversationCreate, ConversationPriority, FilterCondition
 
 CASOS = [
   [
@@ -337,12 +337,7 @@ CASOS = [
   [
     "contacts",
     "filter",
-    [
-      1,
-      {
-        "name": "teste"
-      }
-    ],
+    [1, [FilterCondition(attribute_key="name", filter_operator="contains", values=["teste"])]],
     {},
     "POST",
     "/api/v1/accounts/1/contacts/filter",
@@ -549,12 +544,7 @@ CASOS = [
   [
     "conversations",
     "create",
-    [
-      1,
-      {
-        "name": "teste"
-      }
-    ],
+    [1, ConversationCreate(source_id="origem-teste", inbox_id=1, contact_id=1)],
     {},
     "POST",
     "/api/v1/accounts/1/conversations",
@@ -563,14 +553,8 @@ CASOS = [
   [
     "conversations",
     "update",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1, 1],
+    {"priority": ConversationPriority.HIGH},
     "PATCH",
     "/api/v1/accounts/1/conversations/1",
     True
@@ -578,14 +562,8 @@ CASOS = [
   [
     "conversations",
     "toggle_priority",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1, 1],
+    {"priority": ConversationPriority.LOW},
     "POST",
     "/api/v1/accounts/1/conversations/1/toggle_priority",
     True

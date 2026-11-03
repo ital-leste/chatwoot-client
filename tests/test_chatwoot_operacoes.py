@@ -8,7 +8,7 @@ from collections.abc import Callable
 import httpx
 import pytest
 
-from chatwoot_client import CWClient, ErroAPIChatwoot, TextMessage, LabelDefinition, ConversationStatus
+from chatwoot_client import CWClient, ErroAPIChatwoot, TextMessage, LabelDefinition, ConversationStatus, FilterCondition
 
 
 def cliente_mock(handler: Callable[[httpx.Request], httpx.Response]) -> CWClient:
@@ -58,12 +58,12 @@ def cliente_mock(handler: Callable[[httpx.Request], httpx.Response]) -> CWClient
          "/api/v1/accounts/1/conversations/2/messages",
          {"content": "Nota", "message_type": "outgoing", "private": True}, {}),
         (lambda c: c.conversations.filter(
-            1, [{"attribute_key": "status", "filter_operator": "equal_to",
-                 "values": ["pending"], "query_operator": None}],
+            1, [FilterCondition(attribute_key="status", filter_operator="equal_to",
+                 values=["pending"])],
             page=2, sort_by="created_at_desc",
         ), "POST", "/api/v1/accounts/1/conversations/filter",
          {"payload": [{"attribute_key": "status", "filter_operator": "equal_to",
-                       "values": ["pending"], "query_operator": None}]},
+                       "values": ["pending"]}]},
          {"page": "2", "sort_by": "created_at_desc"}),
     ],
 )
