@@ -35,6 +35,9 @@ class MessagesResource:
         """
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(conversation_id, "conversation_id")
+        for nome, cursor in (("before", before), ("after", after)):
+            if cursor is not None and (type(cursor) is not int or cursor < 0):
+                raise ValueError(f"{nome} deve ser inteiro não negativo quando informado.")
         path = (
             f"api/v1/accounts/{account_id}/conversations/"
             f"{conversation_id}/messages"

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 from collections.abc import Mapping
 from dataclasses import dataclass, fields
 from datetime import datetime
@@ -13,10 +14,10 @@ from ..enums import ConversationStatus
 def _json_objeto(dados: Mapping[str, Any], nome: str) -> dict[str, Any]:
     if not isinstance(dados, Mapping) or any(not isinstance(k, str) for k in dados):
         raise ValueError(f"{nome} deve ser objeto JSON com chaves de texto.")
-    convertido = dict(dados)
     try:
+        convertido = deepcopy(dict(dados))
         json.dumps(convertido, allow_nan=False)
-    except (TypeError, ValueError, OverflowError) as exc:
+    except (TypeError, ValueError, OverflowError, RecursionError) as exc:
         raise ValueError(f"{nome} deve ser serializável em JSON.") from exc
     return convertido
 
@@ -64,6 +65,7 @@ class ConversationCreate:
             if valor is None:
                 continue
             objeto = _json_objeto(valor, nome)
+            object.__setattr__(self, nome, objeto)
             if nome == "message" and (
                 not isinstance(objeto.get("content"), str) or not objeto["content"].strip()
             ):
@@ -76,7 +78,8 @@ class ConversationCreate:
             if valor is None:
                 continue
             if isinstance(valor, Mapping):
-                valor = dict(valor)
+                # Revalidar e copiar para impedir alterações posteriores no payload.
+                valor = _json_objeto(valor, campo.name)
             elif isinstance(valor, ConversationStatus):
                 valor = valor.value
             resultado[campo.name] = valor

@@ -10,7 +10,7 @@ Documentação-fonte: https://github.com/chatwoot/chatwoot/blob/v4.19.0/swagger/
 - Erros: ErroAPIChatwoot informa caminho e status_http, mas nunca o corpo completo nem o token.
 - Paginação: sem agregação automática; envelopes, contadores e cursores permanecem intactos.
 - Retry: ausente em escritas. Um timeout após POST pode significar resultado indeterminado.
-- Entradas: parâmetros Python nomeados e tipados para casos simples, contratos imutáveis para estruturas mais complexas; recursos sem contratos específicos recebem os argumentos documentados pela API.
+- Entradas: parâmetros Python nomeados e tipados para casos simples, contratos imutáveis para estruturas mais complexas. **Sem contrato próprio, enviar os campos e a estrutura previstos pela Application API**, normalmente via `Mapping[str, Any]`, sem remodelar arbitrariamente o payload.
 - Atualizações parciais: campos omitidos não são serializados nem substituídos por `None`; quando a API permite `null` explícito, a entrada distingue os dois estados (em Contacts, via marcador privado). Não é feita leitura automática anterior à escrita.
 - Conversations: prioridade em enum; `priority=None` significa limpar explicitamente. Custom attributes usam `merge=True` por padrão para preservar as demais chaves; `merge=False` faz substituição total intencional.
 - Filtros avançados: `FilterCondition` reutilizado por Contacts e Conversations; cada recurso serializa em `payload` sem DTO de saída.

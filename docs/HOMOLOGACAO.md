@@ -31,10 +31,14 @@ Os testes usam `httpx.MockTransport` e não podem enviar mensagens reais, exclui
 17. Verificar que `update_custom_attributes()` envia `merge=True` como padrão, que `merge=False` substitui deliberadamente e que `delete_custom_attributes(keys=...)` remove apenas chaves solicitadas; nenhuma leitura/atualização adicional.
 18. Testar saída `None` para `head :ok`, status/handoff por `set_status()` e que os recursos de conversas preservam as 13 rotas HTTP oficiais.
 
+19. Confirmar que URL de configuração com tipo inválido gera `ErroConfiguracaoChatwoot`, não `AttributeError`.
+20. Confirmar que objetos JSON recebidos por `Contact` e `ConversationCreate` são copiados e revalidados na serialização, sem permitir dados não JSON após a construção.
+21. Rejeitar cursores de mensagens com tipos incorretos e valores negativos antes de HTTP, preservando o cursor zero usado em integrações existentes.
+
 ## Homologação integrada posterior
 
 Registrar versão/edição da instalação Chatwoot, URL e permissões, sem tokens em relatórios. Executar leituras reais primeiro. Qualquer POST, PATCH ou DELETE real deve ser autorizado por categoria e usar somente dados de teste, com verificação posterior do estado no dashboard.
 
-Validar as saídas via Evolution/WhatsApp, inclusive mídia e notas privadas; HTTP 2xx não comprova entrega final. Atualizar o consumidor Chatwoot–Hermes na sua própria branch de homologação, fixando dependência em SHA/tag, antes de promover a integração a produção.
+Validar separadamente o comportamento de quaisquer canais e aplicações que consumirem a biblioteca, inclusive mídia e mensagens privadas. HTTP 2xx do Chatwoot não comprova entrega final em outro canal. Os consumidores devem fixar SHA/tag da biblioteca e homologar suas operações antes de promover versões a produção.
 
 A aprovação do CI verifica contratos simulados, não homologação operacional na instalação real.

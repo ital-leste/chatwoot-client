@@ -2,11 +2,11 @@
 
 ## Objetivo e fronteiras
 
-Biblioteca Python independente para a Application API Chatwoot 4.19.0, sem acoplamento ao Hermes, Evolution, VPS, banco, webhook ou .env. A aplicação fornece URL/token e controla autorização, idempotência, concorrência e regras de atendimento.
+Biblioteca Python independente para a Application API Chatwoot 4.19.0, sem acoplamento a um sistema consumidor específico, arquivos de ambiente ou persistência. A aplicação fornece URL/token e controla autorização, idempotência, concorrência e regras próprias do negócio.
 
 **Regra oficial:** entradas simples são expressas por parâmetros nomeados e tipados; contratos imutáveis são usados somente para estruturas que justifiquem uma classe própria. Quando houver contrato de entrada, o método exige exclusivamente esse tipo. Recursos ainda não modelados podem usar `Mapping[str, Any]`. As respostas permanecem JSON nativo (`dict`, `list` ou `None`), sem modelos de saída de domínio obrigatórios.
 
-Tipos primitivos como IDs, parâmetros de busca, booleanos e paginação não justificam dataclass isolada. Enumerações representam domínios fechados como `ConversationStatus`.
+Tipos primitivos como IDs, parâmetros de busca, booleanos e paginação não justificam dataclass isolada. Enumerações representam domínios fechados como `ConversationStatus`. Na ausência de contrato de entrada específico, cada método segue o corpo e os parâmetros da Application API, normalmente aceitando `Mapping[str, Any]`.
 
 ## Componentes
 
@@ -28,13 +28,13 @@ Tipos primitivos como IDs, parâmetros de busca, booleanos e paginação não ju
 
 **Regra oficial para atualizações parciais:** um campo *omitido* no objeto Python não pode ser serializado, não pode ser substituído por `None` e não exige uma leitura prévia do contato. O modelo distingue ausência de `None` explícito por marcador privado. Assim, `Contact(name="Maria")` gera exatamente `{"name": "Maria"}`; `Contact(email=None)` gera `{"email": null}` e delega a limpeza às regras do Chatwoot. `False` e dicionários vazios explicitamente informados não são filtrados por verdade/falsidade.
 
-`Contact` contém somente os campos de cadastro suportados pelo payload JSON nesta etapa. E-mail possui checagem simples, telefone segue E.164, `blocked` exige bool e dicionários de atributos precisam ser JSON válidos. Validações de unicidade, disponibilidade de campos, permissões e comportamento de `null` são responsabilidade do backend. Nenhum campo de saída (`id`, timestamps, inboxes, etc.) entra na dataclass.
+`Contact` contém somente os campos de cadastro suportados pelo payload JSON nesta etapa. E-mail possui checagem simples, telefone segue E.164, `blocked` exige bool e dicionários de atributos precisam ser JSON válidos. Validações de unicidade, disponibilidade de campos, permissões e comportamento de `null` são responsabilidade do backend. Nenhum campo de saída (`id`, timestamps, inboxes, etc.) entra na dataclass. A dataclass é imutável na raiz; objetos JSON recebidos são copiados defensivamente na construção e no `to_payload()`. Valores internos continuam mutáveis em Python, por isso a serialização repete a validação JSON antes de enviá-los.
 
 A API utiliza `PUT` na especificação, e o controlador também permite `PATCH`. O cliente preserva `PUT`, enviando **somente** os campos do objeto informados. O Rails realiza atualização parcial e mescla chaves de `additional_attributes`/`custom_attributes` em vez de substituir o objeto inteiro. A criação/atualização de avatar binário por multipart será tratada separadamente; `avatar_url` é aceita como string pelo contrato.
 
 ## Conversas: entradas tipadas, atributos preservados e filtros compartilhados
 
-A criação usa a dataclass imutável `ConversationCreate`, que representa identidade do canal (`source_id`), `inbox_id`, `contact_id`, estado opcional e relações de atribuição; aceita atributos JSON e `message` opcional, exigindo `message.content` quando há mensagem. Não há dataclass de saída. A API exige `source_id`; campos opcionais `None` não entram no payload de criação.
+A criação usa a dataclass imutável `ConversationCreate`, que representa identidade do canal (`source_id`), `inbox_id`, `contact_id`, estado opcional e relações de atribuição; aceita atributos JSON e `message` opcional, exigindo `message.content` quando há mensagem. Não há dataclass de saída. A API exige `source_id`; campos opcionais `None` não entram no payload de criação. Os mapeamentos de atributos e mensagem são copiados na entrada e na saída e revalidados durante a serialização para que mudanças posteriores não contornem os validadores.
 
 O contrato `FilterCondition` é compartilhado por `contacts.filter()` e `conversations.filter()`. Cada recurso só serializa os objetos `FilterCondition` dentro de `{"payload": [...]}`, sem aceitar listas de dicionários alternativas nas operações modeladas. Filtros de leitura simples de `conversations.list()` e `conversations.meta()` recebem parâmetros nomeados (`status`, `q`, IDs, `labels`), sem dataclasses. `list()` retorna `data.meta/data.payload`; `filter()` e `meta()` preservam seus envelopes distintos.
 
@@ -56,7 +56,7 @@ A API devolve arrays JSON em listagens e objetos JSON nas escritas. O cliente co
 
 Anexos por URL exigem HTTPS, DNS público e porta 443, sem credenciais nem redirecionamentos automáticos; `allowed_hosts` limita destinos. Downloads são feitos em cliente separado com `trust_env=False`, nunca com o token Chatwoot. O filtro DNS não substitui egress/allowlist de rede. Tamanho máximo padrão de 25 MiB por anexo.
 
-Alterações de etiquetas por `add/remove` não são atômicas; o executor deve ordenar requisições concorrentes por conversa e conferir o estado final quando necessário. Regras para ferramentas do Hermes, permissões de edição de respostas rápidas e publicação pública/privada pertencem à aplicação consumidora.
+Alterações de etiquetas por `add/remove` não são atômicas; o executor deve ordenar requisições concorrentes por conversa e conferir o estado final quando necessário. Políticas de autorização para edição, exclusão e publicação pública/privada pertencem à aplicação consumidora.
 
 ## Abrangência e versionamento
 

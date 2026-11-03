@@ -68,6 +68,8 @@ class CWClient:
         self, base_url: str, api_token: str, timeout: float = 30.0,
         *, auth_mode: str = "bearer",
     ) -> None:
+        if not isinstance(base_url, str) or not base_url.strip():
+            raise ErroConfiguracaoChatwoot("base_url deve ser URL http(s) não vazia.")
         base_url = base_url.strip().rstrip("/")
         partes_url = urlsplit(base_url)
         if (

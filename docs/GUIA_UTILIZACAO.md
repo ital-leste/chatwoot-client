@@ -13,6 +13,17 @@ from chatwoot_client import (
 )
 ```
 
+## Como escolher a entrada
+
+Métodos simples recebem argumentos nomeados; métodos modelados exigem seus contratos de entrada. **Nos demais métodos, utilize diretamente os campos documentados na Application API**, normalmente por `Mapping[str, Any]`:
+
+```python
+# Atualização de etiqueta ainda sem contrato próprio; segue o payload da API.
+cw.labels.update(1, 7, {"description": "Atendimento"})
+```
+
+Os modelos são apenas de entrada. Os retornos permanecem em `dict`, `list` ou `None` conforme cada endpoint, sem objetos de saída próprios.
+
 ## Consultas e filtros
 
 Consultas que não possuem contrato específico continuam retornando o JSON da API com seus envelopes, cursores e metadados:
@@ -198,7 +209,7 @@ cw.contacts.update(1, novo_id, Contact(
 
 **Garantia do cliente:** um campo não informado no `Contact(...)` não entra no JSON de atualização. Os atributos existentes são preservados pelo comportamento de atualização parcial do Chatwoot, sem precisar realizar GET anterior. Não confundir campo omitido com `None` explicitamente informado; este último será serializado como `null`, e o resultado depende das regras do servidor. Para não reenviar campos antigos, crie um `Contact` com apenas os campos que deseja alterar.
 
-Os validadores locais verificam formatos simples de e-mail, E.164 para telefone, tipos básicos e objetos JSON válidos, mas a conta Chatwoot continua validando unicidade e atributos configurados. O contrato não contempla `avatar` binário nesta fase; `avatar_url` é suportada.
+Os validadores locais verificam formatos simples de e-mail, E.164 para telefone, tipos básicos e objetos JSON válidos, mas a conta Chatwoot continua validando unicidade e atributos configurados. Dicionários JSON são copiados defensivamente e revalidados ao serializar: a imutabilidade da dataclass não deve ser confundida com imutabilidade profunda dos valores aninhados. O contrato não contempla `avatar` binário nesta fase; `avatar_url` é suportada.
 
 ## Respostas rápidas — parâmetros nomeados
 
@@ -229,6 +240,6 @@ with CWClient(URL, TOKEN) as cw:
 
 ## Restrições de segurança
 
-A interface de entrada usa parâmetros nomeados tipados em operações simples e contratos de domínio quando há estrutura ou validações que os justificam. Não forneça dicionários onde a operação exige `TextMessage`, `MediaMessage` ou `LabelDefinition`. Recursos ainda não modelados continuam espelhando a API com `Mapping`.
+A interface de entrada usa parâmetros nomeados tipados em operações simples e contratos de domínio quando há estrutura ou validações que os justificam. Não forneça dicionários onde a operação exige `TextMessage`, `MediaMessage`, `LabelDefinition`, `Contact`, `ConversationCreate` ou `FilterCondition`. Recursos ainda não modelados continuam espelhando a API com `Mapping`.
 
 Erros de conexão, HTTP ou JSON inválido geram `ErroAPIChatwoot`, sem vazar dados de resposta. A confirmação da API não representa confirmação de entrega WhatsApp. Não há retry implícito de POST/PATCH/DELETE.

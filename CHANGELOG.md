@@ -2,6 +2,10 @@
 
 ## Unreleased — homolog
 
+- README principal reescrito para apresentar o cliente Python de forma neutra, com uso inicial, entrada tipada quando necessária e payload da API como padrão para operações não modeladas.
+- Auditoria de validações: URL de configuração com tipo inválido rejeitada explicitamente; cursores de mensagens validados antes de HTTP; mapeamentos de entrada de Contacts e Conversations copiados e revalidados ao serializar.
+- Documentação geral revisada para diferenciar validação simulada de homologação real e reduzir acoplamento a consumidores específicos.
+
 - Conversations padronizado: `ConversationCreate` na criação; `FilterCondition` compartilhado com `contacts.filter()`; prioridade por enum `ConversationPriority`, digitação e atributos por parâmetros tipados.
 - Atributos personalizados de conversas agora enviam `merge=True` por padrão, preservando chaves omitidas; `merge=False` solicita substituição integral. Exclusão de atributos recebe somente `keys`.
 - Mantidas as rotas oficiais e os retornos JSON nativos; removidas entradas `Mapping` redundantes das operações padronizadas de Conversations.

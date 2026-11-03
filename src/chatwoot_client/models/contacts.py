@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import re
+from copy import deepcopy
 from collections.abc import Mapping
 from dataclasses import dataclass, fields
 from typing import Any
@@ -63,9 +64,11 @@ class Contact:
             if not isinstance(valor, Mapping) or any(not isinstance(chave, str) for chave in valor):
                 raise ValueError(f"{nome} deve ser objeto JSON com chaves string, ou None.")
             try:
-                json.dumps(dict(valor), allow_nan=False)
-            except (TypeError, ValueError) as exc:
+                copia = deepcopy(dict(valor))
+                json.dumps(copia, allow_nan=False)
+            except (TypeError, ValueError, OverflowError, RecursionError) as exc:
                 raise ValueError(f"{nome} deve conter valores compatíveis com JSON.") from exc
+            object.__setattr__(self, nome, copia)
 
     def to_payload(self) -> dict[str, Any]:
         """Mantém apenas campos informados, inclusive False, {} e None explícitos."""
@@ -74,5 +77,14 @@ class Contact:
             valor = getattr(self, campo.name)
             if valor is _NAO_INFORMADO:
                 continue
-            resultado[campo.name] = dict(valor) if isinstance(valor, Mapping) else valor
+            if isinstance(valor, Mapping):
+                # Revalidar após eventuais alterações internas do mapping.
+                if any(not isinstance(chave, str) for chave in valor):
+                    raise ValueError(f"{campo.name} requer chaves string.")
+                try:
+                    valor = deepcopy(dict(valor))
+                    json.dumps(valor, allow_nan=False)
+                except (TypeError, ValueError, OverflowError, RecursionError) as exc:
+                    raise ValueError(f"{campo.name} deve ser JSON válido.") from exc
+            resultado[campo.name] = valor
         return resultado
