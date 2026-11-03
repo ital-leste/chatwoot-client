@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 
-from .models import Contact
+from .models import Contact, FilterCondition
+from .models.filters import _serializar_filtros
 
 from typing import TYPE_CHECKING, Any
 
@@ -124,19 +125,22 @@ class ContactsResource:
             consulta.update(parametros)
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def filter(self, account_id: int, data: Mapping[str, Any], *, page: int | None = None, parametros: Mapping[str, Any] | None = None) -> Any:
-        """POST /api/v1/accounts/{account_id}/contacts/filter; retorna JSON ou None."""
+    def filter(
+        self, account_id: int, filters: Sequence[FilterCondition], *, page: int | None = None,
+    ) -> dict[str, Any]:
+        """POST de filtros estruturados compartilhados com Conversations."""
         self._client._validar_id(account_id, "account_id")
-        if not isinstance(data, Mapping):
-            raise ValueError("data deve ser objeto JSON.")
+        if page is not None:
+            self._client._validar_id(page, "page")
         caminho = f"api/v1/accounts/{account_id}/contacts/filter"
-        consulta: dict[str, Any] = {
-            "page": page,
-        }
-        consulta = {k: v for k, v in consulta.items() if v is not None}
-        if parametros:
-            consulta.update(parametros)
-        return self._client._solicitar_json("POST", caminho, dados=data, parametros=consulta)
+        resposta = self._client._post(
+            caminho,
+            dados={"payload": _serializar_filtros(filters)},
+            parametros={"page": page} if page is not None else None,
+        )
+        return self._client._exigir_objeto(
+            resposta, operacao="filtrar contatos", caminho=caminho
+        )
 
     def add_inbox(self, account_id: int, contact_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
         """POST /api/v1/accounts/{account_id}/contacts/{id}/contact_inboxes; retorna JSON ou None."""
