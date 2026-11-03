@@ -2,7 +2,7 @@
 
 Referência oficial: https://github.com/chatwoot/chatwoot/blob/v4.19.0/swagger/tag_groups/application_swagger.json
 
-Cada linha corresponde a verbo e caminho HTTP, vinculados ao método Python. A matriz cataloga 124 operações em 75 caminhos. Os 16 métodos herdados permanecem compatíveis. A existência de um método não substitui teste contra instalação real.
+Cada linha corresponde a verbo e caminho HTTP, vinculados ao método Python. A matriz cataloga 124 operações em 75 caminhos. Interfaces redundantes de operações tipadas foram removidas durante a homologação; a matriz descreve verbos e caminhos, não contratos legados. A existência de um método não substitui teste contra instalação real.
 
 | Categoria | Verbo | Caminho oficial | Método do cliente | Origem |
 |---|---|---|---|---|
@@ -81,12 +81,12 @@ Cada linha corresponde a verbo e caminho HTTP, vinculados ao método Python. A m
 | Inboxes | PATCH | `/api/v1/accounts/{account_id}/inbox_members` | `cw.inboxes.update_members()` | Novo |
 | Inboxes | DELETE | `/api/v1/accounts/{account_id}/inbox_members` | `cw.inboxes.remove_members()` | Novo |
 | Labels | GET | `/api/v1/accounts/{account_id}/labels` | `cw.labels.list()` | Herdado |
-| Labels | POST | `/api/v1/accounts/{account_id}/labels` | `cw.labels.create()` | Herdado |
+| Labels | POST | `/api/v1/accounts/{account_id}/labels` | `cw.labels.create(LabelDefinition)` | Tipado |
 | Labels | GET | `/api/v1/accounts/{account_id}/labels/{id}` | `cw.labels.get()` | Novo |
 | Labels | PATCH | `/api/v1/accounts/{account_id}/labels/{id}` | `cw.labels.update()` | Novo |
 | Labels | DELETE | `/api/v1/accounts/{account_id}/labels/{id}` | `cw.labels.delete()` | Novo |
 | Messages | GET | `/api/v1/accounts/{account_id}/conversations/{conversation_id}/messages` | `cw.messages.list()` | Herdado |
-| Messages | POST | `/api/v1/accounts/{account_id}/conversations/{conversation_id}/messages` | `cw.messages.create()` | Herdado |
+| Messages | POST | `/api/v1/accounts/{account_id}/conversations/{conversation_id}/messages` | `cw.messages.send_text()` / `send_media()` | Tipado |
 | Messages | PATCH | `/api/v1/accounts/{account_id}/conversations/{conversation_id}/messages/{message_id}` | `cw.messages.update_status()` | Novo |
 | Messages | DELETE | `/api/v1/accounts/{account_id}/conversations/{conversation_id}/messages/{message_id}` | `cw.messages.delete()` | Novo |
 | Integrations | GET | `/api/v1/accounts/{account_id}/integrations/apps` | `cw.integrations.list_apps()` | Novo |
@@ -131,4 +131,4 @@ Cada linha corresponde a verbo e caminho HTTP, vinculados ao método Python. A m
 | Campaigns | PATCH | `/api/v1/accounts/{account_id}/campaigns/{id}` | `cw.campaigns.update()` | Novo |
 | Campaigns | DELETE | `/api/v1/accounts/{account_id}/campaigns/{id}` | `cw.campaigns.delete()` | Novo |
 
-Métodos complementares para formatos alternativos: cw.messages.create_with_attachments() (multipart), cw.profile.update_multipart() (avatar) e cw.account.update_form() (form-urlencoded). Eles representam variações de transporte de operações já contadas, não endpoints novos.
+Formatos alternativos: `cw.messages.send_media()` (multipart), `cw.profile.update_multipart()` (avatar) e `cw.account.update_form()` (form-urlencoded). Eles não representam novos endpoints além dos já contados.

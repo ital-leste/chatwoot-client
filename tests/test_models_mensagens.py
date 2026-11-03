@@ -12,7 +12,7 @@ import pytest
 
 from chatwoot_client import (
     Attachment, CWClient, ErroAPIChatwoot, ErroAnexoChatwoot,
-    MediaMessage, MessageType, MessageVisibility, MimeType, TextMessage,
+    MediaMessage, MessageType, MimeType, TextMessage,
 )
 from chatwoot_client import attachment_resolver as resolver
 
@@ -35,7 +35,7 @@ def test_tipos_exportados_pela_raiz():
     assert MimeType.PDF.value == "application/pdf"
     assert MimeType.OGG.value == "audio/ogg"
     assert MessageType.OUTGOING.value == "outgoing"
-    assert MessageVisibility.PRIVATE.is_private is True
+    assert MessageType.INCOMING.value == "incoming"
 
 
 @pytest.mark.parametrize(
@@ -44,7 +44,7 @@ def test_tipos_exportados_pela_raiz():
         lambda: TextMessage(""),
         lambda: TextMessage("   "),
         lambda: TextMessage(12),
-        lambda: TextMessage("oi", visibility="private"),
+        lambda: TextMessage("oi", private="false"),
         lambda: TextMessage("oi", message_type="outgoing"),
         lambda: MediaMessage(attachments=[]),
         lambda: MediaMessage(attachments=["arquivo.pdf"]),
@@ -67,7 +67,7 @@ def test_texto_publico_serializado_em_json_sem_repetir():
     seen = []
     with mock_client(seen) as cw:
         ret = cw.messages.send_text(
-            1, 2, TextMessage("Olá!", visibility=MessageVisibility.PUBLIC)
+            1, 2, TextMessage("Olá!", private=False)
         )
     assert ret == {"id": 44}
     assert len(seen) == 1
@@ -81,7 +81,7 @@ def test_texto_publico_serializado_em_json_sem_repetir():
 def test_nota_privada_nao_altera_endpoint():
     seen = []
     with mock_client(seen) as cw:
-        cw.messages.send_text(1, 2, TextMessage("Nota", visibility=MessageVisibility.PRIVATE))
+        cw.messages.send_text(1, 2, TextMessage("Nota", private=True))
     assert json.loads(seen[0].content)["private"] is True
 
 
@@ -97,9 +97,11 @@ def test_pdf_local_com_legenda_multipart_e_nome_inferido(tmp_path: Path):
     arquivo.write_bytes(b"%PDF-1.4 conteudo")
     seen = []
     with mock_client(seen) as cw:
-        retorno = cw.messages.send_document(
-            1, 2, Attachment.from_path(arquivo), caption="Segue o laudo",
-            visibility=MessageVisibility.PRIVATE,
+        retorno = cw.messages.send_media(
+            1, 2, MediaMessage(
+                attachments=(Attachment.from_path(arquivo),),
+                caption="Segue o laudo", private=True,
+            )
         )
     assert retorno == {"id": 44}
     assert len(seen) == 1
@@ -131,43 +133,23 @@ def test_multiplos_anexos_e_legenda_opcional():
     assert b'a.pdf' in req.content and b'b.pdf' in req.content
 
 
-@pytest.mark.parametrize(
-    ("method", "mime"),
-    [
-        ("send_image", MimeType.PNG),
-        ("send_audio", MimeType.OGG),
-        ("send_video", MimeType.MP4),
-        ("send_document", MimeType.PDF),
-    ],
-)
-def test_metodos_especializados_compartilham_multipart(method, mime):
+@pytest.mark.parametrize("mime", [MimeType.PNG, MimeType.OGG, MimeType.MP4, MimeType.PDF])
+def test_send_media_unifica_todas_as_familias_mime(mime):
     seen = []
     attachment = Attachment(b"conteudo", mime, "a.bin")
     with mock_client(seen) as cw:
-        getattr(cw.messages, method)(1, 2, attachment)
+        cw.messages.send_media(1, 2, MediaMessage((attachment,)))
     assert len(seen) == 1
     assert seen[0].method == "POST"
     assert b"conteudo" in seen[0].content
-
-
-@pytest.mark.parametrize(
-    ("method", "mime"),
-    [("send_image", MimeType.PDF), ("send_audio", MimeType.JPEG),
-     ("send_video", MimeType.OGG), ("send_document", MimeType.MP4)],
-)
-def test_metodo_especializado_rejeita_mime_incorreto(method, mime):
-    seen = []
-    with mock_client(seen) as cw, pytest.raises(ValueError):
-        getattr(cw.messages, method)(1, 2, Attachment(b"x", mime, "a.bin"))
-    assert not seen
 
 
 def test_fluxo_binario_externo_permanece_aberto():
     seen = []
     user_stream = io.BytesIO(b"arq")
     with mock_client(seen) as cw:
-        cw.messages.send_document(
-            1, 2, Attachment(user_stream, MimeType.PDF, "teste.pdf")
+        cw.messages.send_media(
+            1, 2, MediaMessage((Attachment(user_stream, MimeType.PDF, "teste.pdf"),))
         )
     assert not user_stream.closed
     assert b"arq" in seen[0].content
@@ -187,15 +169,15 @@ def test_limite_de_tamanho_impede_envio(tmp_path: Path):
     path.write_bytes(b"x" * 15)
     seen = []
     with mock_client(seen) as cw, pytest.raises(ErroAnexoChatwoot):
-        cw.messages.send_document(1, 2, Attachment.from_path(path), max_bytes=10)
+        cw.messages.send_media(1, 2, MediaMessage((Attachment.from_path(path),)), max_bytes=10)
     assert not seen
 
 
 def test_ip_local_bloqueado_sem_requisicao():
     seen = []
     with mock_client(seen) as cw, pytest.raises(ErroAnexoChatwoot):
-        cw.messages.send_document(
-            1, 2, Attachment.from_url("https://127.0.0.1/a.pdf")
+        cw.messages.send_media(
+            1, 2, MediaMessage((Attachment.from_url("https://127.0.0.1/a.pdf"),))
         )
     assert not seen
 
@@ -203,9 +185,8 @@ def test_ip_local_bloqueado_sem_requisicao():
 def test_host_fora_da_allowlist_impede_download():
     seen = []
     with mock_client(seen) as cw, pytest.raises(ErroAnexoChatwoot):
-        cw.messages.send_document(
-            1, 2,
-            Attachment.from_url("https://files.example.org/laudo.pdf"),
+        cw.messages.send_media(
+            1, 2, MediaMessage((Attachment.from_url("https://files.example.org/laudo.pdf"),)),
             allowed_hosts={"outro.example.org"},
         )
     assert not seen
@@ -238,8 +219,8 @@ def test_url_remota_baixa_sem_repassar_token_e_envia_pdf(monkeypatch):
         ],
     )
     with mock_client(seen_upload) as cw:
-        cw.messages.send_document(
-            1, 2, Attachment.from_url("https://files.example.org/laudo.pdf"),
+        cw.messages.send_media(
+            1, 2, MediaMessage((Attachment.from_url("https://files.example.org/laudo.pdf"),)),
             allowed_hosts={"files.example.org"},
         )
     assert len(seen_download) == 1

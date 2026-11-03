@@ -1,7 +1,7 @@
 """Testes de autenticação e transporte sem chamadas externas."""
 import httpx
 import pytest
-from chatwoot_client import CWClient, ErroAPIChatwoot, ErroConfiguracaoChatwoot
+from chatwoot_client import CWClient, ErroAPIChatwoot, ErroConfiguracaoChatwoot, MediaMessage, Attachment, MimeType
 
 
 def cliente(handler, modo="bearer"):
@@ -42,12 +42,14 @@ def test_prefixo_reverso_e_multipart():
         requests.append(req)
         return httpx.Response(200, json={"id": 99})
     with cliente(handler) as cw:
-        resposta = cw.messages.create_with_attachments(
-            1, 2, content="Nota", private=True,
-            attachments=[
-                ("a.txt", b"primeiro", "text/plain"),
-                ("b.pdf", b"%PDF", "application/pdf"),
-            ],
+        resposta = cw.messages.send_media(
+            1, 2, MediaMessage(
+                attachments=[
+                    Attachment(b"primeiro", MimeType.TEXT, "a.txt"),
+                    Attachment(b"%PDF", MimeType.PDF, "b.pdf"),
+                ],
+                caption="Nota", private=True,
+            ),
         )
     assert resposta == {"id": 99}
     req = requests[0]
@@ -70,7 +72,7 @@ def test_timeout_nao_repete_envio():
         chamadas.append(req)
         raise httpx.ReadTimeout("timeout", request=req)
     with cliente(handler) as cw, pytest.raises(ErroAPIChatwoot):
-        cw.messages.create_with_attachments(
-            1, 2, attachments=[("a.txt", b"ok", "text/plain")]
+        cw.messages.send_media(
+            1, 2, MediaMessage((Attachment(b"ok", MimeType.TEXT, "a.txt"),))
         )
     assert len(chamadas) == 1

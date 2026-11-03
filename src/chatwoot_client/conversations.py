@@ -1,22 +1,93 @@
-"""Consultas de conversas na API Chatwoot."""
-
+"""Recurso Conversations — entradas tipadas e retornos JSON nativos."""
 from __future__ import annotations
 
-from collections.abc import Mapping
+import json
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Literal
 
-from .enums import ConversationStatus
-
-from typing import TYPE_CHECKING, Any
+from .enums import ConversationPriority, ConversationStatus
+from .models import ConversationCreate, FilterCondition
+from .models.filters import _serializar_filtros
 
 if TYPE_CHECKING:
     from .client import CWClient
 
+_FILTROS_STATUS = {"all", "open", "resolved", "pending", "snoozed"}
+_FILTROS_ATENDENTE = {"me", "unassigned", "all", "assigned"}
+_ORDENACAO_FILTROS = {
+    "last_activity_at_asc", "last_activity_at_desc",
+    "created_at_asc", "created_at_desc",
+    "priority_asc", "priority_desc",
+    "waiting_since_asc", "waiting_since_desc",
+    "priority_desc_created_at_asc", "unread",
+}
+
 
 class ConversationsResource:
-    """Operações de leitura de conversas."""
+    """Interface Python para os endpoints oficiais de conversas."""
 
     def __init__(self, client: CWClient) -> None:
         self._client = client
+
+    @staticmethod
+    def _validar_lista_labels(labels: list[str] | None) -> list[str] | None:
+        if labels is None:
+            return None
+        if not isinstance(labels, list) or any(
+            not isinstance(label, str) or not label.strip() for label in labels
+        ):
+            raise ValueError("labels deve ser lista de textos não vazios.")
+        return labels
+
+    def _consulta_conversas(
+        self,
+        *,
+        status: str | None,
+        q: str | None,
+        inbox_id: int | None,
+        team_id: int | None,
+        labels: list[str] | None,
+    ) -> dict[str, Any]:
+        if status is not None and (
+            not isinstance(status, str) or status not in _FILTROS_STATUS
+        ):
+            raise ValueError("status de consulta deve ser all, open, resolved, pending ou snoozed.")
+        if q is not None and (not isinstance(q, str) or not q.strip()):
+            raise ValueError("q deve ser texto não vazio.")
+        for valor, nome in ((inbox_id, "inbox_id"), (team_id, "team_id")):
+            if valor is not None:
+                self._client._validar_id(valor, nome)
+        consulta: dict[str, Any] = {}
+        for nome, valor in (
+            ("status", status), ("q", q), ("inbox_id", inbox_id), ("team_id", team_id)
+        ):
+            if valor is not None:
+                consulta[nome] = valor
+        lista = self._validar_lista_labels(labels)
+        if lista is not None:
+            consulta["labels[]"] = lista
+        return consulta
+
+    @staticmethod
+    def _validar_atributos(atributos: Mapping[str, Any]) -> dict[str, Any]:
+        if not isinstance(atributos, Mapping) or any(
+            not isinstance(chave, str) for chave in atributos
+        ):
+            raise ValueError("custom_attributes deve ser objeto JSON com chaves string.")
+        resultado = dict(atributos)
+        try:
+            json.dumps(resultado, allow_nan=False)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("custom_attributes deve conter JSON válido.") from exc
+        return resultado
+
+    @staticmethod
+    def _validar_prioridade(prioridade: ConversationPriority | None) -> str | None:
+        if prioridade is None:
+            return None
+        if not isinstance(prioridade, ConversationPriority):
+            raise TypeError("priority deve ser ConversationPriority ou None.")
+        return prioridade.value
 
     def list(
         self,
@@ -30,194 +101,207 @@ class ConversationsResource:
         labels: list[str] | None = None,
         page: int | None = None,
     ) -> dict[str, Any]:
-        """GET /api/v1/accounts/{account_id}/conversations.
-
-        Aceita os filtros e a página documentados pela Application API e
-        retorna o envelope JSON completo sem acumular páginas automaticamente.
-        """
+        """GET lista, preservando o envelope {"data": {"meta":..., "payload":...}}."""
         self._client._validar_id(account_id, "account_id")
-        for value, name in ((inbox_id, "inbox_id"), (team_id, "team_id"), (page, "page")):
-            if value is not None:
-                self._client._validar_id(value, name)
-        filters = {
-            name: value
-            for name, value in (
-                ("assignee_type", assignee_type),
-                ("status", status),
-                ("q", q),
-                ("inbox_id", inbox_id),
-                ("team_id", team_id),
-                ("page", page),
-            )
-            if value is not None
-        }
-        if labels is not None:
-            # A Application API recebe a lista como parâmetro de array do Rails.
-            filters["labels[]"] = labels
-        path = f"api/v1/accounts/{account_id}/conversations"
-        response = self._client._solicitar_json("GET", path, parametros=filters)
+        consulta = self._consulta_conversas(
+            status=status, q=q, inbox_id=inbox_id, team_id=team_id, labels=labels
+        )
+        if assignee_type is not None:
+            if not isinstance(assignee_type, str) or assignee_type not in _FILTROS_ATENDENTE:
+                raise ValueError("assignee_type deve ser me, unassigned, all ou assigned.")
+            consulta["assignee_type"] = assignee_type
+        if page is not None:
+            self._client._validar_id(page, "page")
+            consulta["page"] = page
+        caminho = f"api/v1/accounts/{account_id}/conversations"
+        resposta = self._client._get(caminho, parametros=consulta)
         return self._client._exigir_objeto(
-            response, operacao="listar as conversas", caminho=path
+            resposta, operacao="listar conversas", caminho=caminho
         )
 
     def get(self, account_id: int, conversation_id: int) -> dict[str, Any]:
-        """GET /api/v1/accounts/{account_id}/conversations/{conversation_id}."""
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(conversation_id, "conversation_id")
-        path = f"api/v1/accounts/{account_id}/conversations/{conversation_id}"
-        response = self._client._solicitar_json("GET", path)
+        caminho = f"api/v1/accounts/{account_id}/conversations/{conversation_id}"
+        resposta = self._client._get(caminho)
         return self._client._exigir_objeto(
-            response,
-            operacao="consultar a conversa",
-            caminho=path,
+            resposta, operacao="consultar conversa", caminho=caminho
+        )
+
+    def meta(
+        self,
+        account_id: int,
+        *,
+        status: str | None = None,
+        q: str | None = None,
+        inbox_id: int | None = None,
+        team_id: int | None = None,
+        labels: list[str] | None = None,
+    ) -> dict[str, Any]:
+        self._client._validar_id(account_id, "account_id")
+        consulta = self._consulta_conversas(
+            status=status, q=q, inbox_id=inbox_id, team_id=team_id, labels=labels
+        )
+        caminho = f"api/v1/accounts/{account_id}/conversations/meta"
+        resposta = self._client._get(caminho, parametros=consulta)
+        return self._client._exigir_objeto(
+            resposta, operacao="consultar totais de conversas", caminho=caminho
+        )
+
+    def filter(
+        self,
+        account_id: int,
+        filters: Sequence[FilterCondition],
+        *,
+        page: int | None = None,
+        sort_by: str | None = None,
+    ) -> dict[str, Any]:
+        self._client._validar_id(account_id, "account_id")
+        dados = {"payload": _serializar_filtros(filters)}
+        parametros: dict[str, Any] = {}
+        if page is not None:
+            self._client._validar_id(page, "page")
+            parametros["page"] = page
+        if sort_by is not None:
+            if not isinstance(sort_by, str) or sort_by not in _ORDENACAO_FILTROS:
+                raise ValueError("sort_by não é uma ordenação oficial de conversas.")
+            parametros["sort_by"] = sort_by
+        caminho = f"api/v1/accounts/{account_id}/conversations/filter"
+        resposta = self._client._post(caminho, dados=dados, parametros=parametros)
+        return self._client._exigir_objeto(
+            resposta, operacao="filtrar conversas", caminho=caminho
+        )
+
+    def create(self, account_id: int, conversation: ConversationCreate) -> dict[str, Any]:
+        """POST com contrato de entrada; retorna objeto JSON original."""
+        self._client._validar_id(account_id, "account_id")
+        if not isinstance(conversation, ConversationCreate):
+            raise TypeError("conversation deve ser ConversationCreate.")
+        caminho = f"api/v1/accounts/{account_id}/conversations"
+        resposta = self._client._post(caminho, dados=conversation.to_payload())
+        return self._client._exigir_objeto(
+            resposta, operacao="criar conversa", caminho=caminho
+        )
+
+    def update(
+        self,
+        account_id: int,
+        conversation_id: int,
+        *,
+        priority: ConversationPriority | None,
+    ) -> dict[str, Any]:
+        """PATCH: prioridade fornecida; None explícito remove prioridade."""
+        self._client._validar_id(account_id, "account_id")
+        self._client._validar_id(conversation_id, "conversation_id")
+        dados = {"priority": self._validar_prioridade(priority)}
+        caminho = f"api/v1/accounts/{account_id}/conversations/{conversation_id}"
+        resposta = self._client._patch(caminho, dados=dados)
+        return self._client._exigir_objeto(
+            resposta, operacao="atualizar conversa", caminho=caminho
         )
 
     def set_status(
         self,
         account_id: int,
         conversation_id: int,
-        status: ConversationStatus | str,
+        status: ConversationStatus,
         *,
         snoozed_until: int | None = None,
     ) -> dict[str, Any]:
-        """POST toggle_status com estado explícito (não alternância implícita)."""
+        """POST de estado explícito; preserva regra de handoff do AgentBot."""
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(conversation_id, "conversation_id")
-        if not isinstance(status, str) or status not in ConversationStatus._value2member_map_:
-            raise ValueError("status deve ser ConversationStatus ou uma string oficial.")
+        if not isinstance(status, ConversationStatus):
+            raise TypeError("status deve ser ConversationStatus.")
         if snoozed_until is not None:
-            if status != "snoozed":
+            if status is not ConversationStatus.SNOOZED:
                 raise ValueError("snoozed_until só é válido quando status='snoozed'.")
             self._client._validar_id(snoozed_until, "snoozed_until")
-        dados: dict[str, Any] = {"status": str(status)}
+        dados: dict[str, Any] = {"status": status.value}
         if snoozed_until is not None:
             dados["snoozed_until"] = snoozed_until
         caminho = f"api/v1/accounts/{account_id}/conversations/{conversation_id}/toggle_status"
-        resposta = self._client._solicitar_json("POST", caminho, dados=dados)
+        resposta = self._client._post(caminho, dados=dados)
         return self._client._exigir_objeto(
             resposta, operacao="alterar status da conversa", caminho=caminho
         )
 
-    def filter(
+    def toggle_priority(
         self,
         account_id: int,
-        payload: list[dict[str, Any]],
+        conversation_id: int,
         *,
-        page: int | None = None,
-        sort_by: str | None = None,
-    ) -> dict[str, Any]:
-        """POST de consulta filtrada; preserva o envelope JSON integral."""
-        self._client._validar_id(account_id, "account_id")
-        if not isinstance(payload, list) or not payload or any(
-            not isinstance(filtro, dict) for filtro in payload
-        ):
-            raise ValueError("payload deve ser lista não vazia de objetos.")
-        if page is not None:
-            self._client._validar_id(page, "page")
-        if sort_by is not None and (
-            not isinstance(sort_by, str) or not sort_by.strip()
-        ):
-            raise ValueError("sort_by deve ser string não vazia.")
-        parametros: dict[str, Any] = {}
-        if page is not None:
-            parametros["page"] = page
-        if sort_by is not None:
-            parametros["sort_by"] = sort_by
-        caminho = f"api/v1/accounts/{account_id}/conversations/filter"
-        resposta = self._client._solicitar_json(
-            "POST", caminho, dados={"payload": payload}, parametros=parametros
-        )
-        return self._client._exigir_objeto(
-            resposta, operacao="filtrar conversas", caminho=caminho
-        )
-
-    def meta(self, account_id: int, *, status: str | None = None, q: str | None = None, inbox_id: int | None = None, team_id: int | None = None, labels: list[Any] | None = None, parametros: Mapping[str, Any] | None = None) -> Any:
-        """GET /api/v1/accounts/{account_id}/conversations/meta; retorna JSON ou None."""
-        self._client._validar_id(account_id, "account_id")
-        caminho = f"api/v1/accounts/{account_id}/conversations/meta"
-        consulta: dict[str, Any] = {
-            "status": status,
-            "q": q,
-            "inbox_id": inbox_id,
-            "team_id": team_id,
-            "labels": labels,
-        }
-        consulta = {k: v for k, v in consulta.items() if v is not None}
-        if parametros:
-            consulta.update(parametros)
-        return self._client._solicitar_json("GET", caminho, parametros=consulta)
-
-    def create(self, account_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
-        """POST /api/v1/accounts/{account_id}/conversations; retorna JSON ou None."""
-        self._client._validar_id(account_id, "account_id")
-        if not isinstance(data, Mapping):
-            raise ValueError("data deve ser objeto JSON.")
-        caminho = f"api/v1/accounts/{account_id}/conversations"
-        consulta = parametros
-        return self._client._solicitar_json("POST", caminho, dados=data, parametros=consulta)
-
-    def update(self, account_id: int, conversation_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
-        """PATCH /api/v1/accounts/{account_id}/conversations/{conversation_id}; retorna JSON ou None."""
+        priority: ConversationPriority | None,
+    ) -> None:
+        """POST: exige prioridade explícita (None limpa), API sem corpo."""
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(conversation_id, "conversation_id")
-        if not isinstance(data, Mapping):
-            raise ValueError("data deve ser objeto JSON.")
-        caminho = f"api/v1/accounts/{account_id}/conversations/{conversation_id}"
-        consulta = parametros
-        return self._client._solicitar_json("PATCH", caminho, dados=data, parametros=consulta)
-
-    def toggle_priority(self, account_id: int, conversation_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
-        """POST /api/v1/accounts/{account_id}/conversations/{conversation_id}/toggle_priority; retorna JSON ou None."""
-        self._client._validar_id(account_id, "account_id")
-        self._client._validar_id(conversation_id, "conversation_id")
-        if not isinstance(data, Mapping):
-            raise ValueError("data deve ser objeto JSON.")
+        dados = {"priority": self._validar_prioridade(priority)}
         caminho = f"api/v1/accounts/{account_id}/conversations/{conversation_id}/toggle_priority"
-        consulta = parametros
-        return self._client._solicitar_json("POST", caminho, dados=data, parametros=consulta)
+        return self._client._post(caminho, dados=dados)
 
-    def set_typing_status(self, account_id: int, conversation_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
-        """POST /api/v1/accounts/{account_id}/conversations/{conversation_id}/toggle_typing_status; retorna JSON ou None."""
+    def set_typing_status(
+        self,
+        account_id: int,
+        conversation_id: int,
+        *,
+        typing_status: Literal["on", "off"],
+        is_private: bool = False,
+    ) -> None:
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(conversation_id, "conversation_id")
-        if not isinstance(data, Mapping):
-            raise ValueError("data deve ser objeto JSON.")
+        if typing_status not in ("on", "off") or not isinstance(typing_status, str):
+            raise ValueError("typing_status deve ser 'on' ou 'off'.")
+        if not isinstance(is_private, bool):
+            raise ValueError("is_private deve ser bool.")
         caminho = f"api/v1/accounts/{account_id}/conversations/{conversation_id}/toggle_typing_status"
-        consulta = parametros
-        return self._client._solicitar_json("POST", caminho, dados=data, parametros=consulta)
+        return self._client._post(
+            caminho, dados={"typing_status": typing_status, "is_private": is_private}
+        )
 
-    def update_last_seen(self, account_id: int, conversation_id: int, *, parametros: Mapping[str, Any] | None = None) -> Any:
-        """POST /api/v1/accounts/{account_id}/conversations/{conversation_id}/update_last_seen; retorna JSON ou None."""
+    def update_last_seen(self, account_id: int, conversation_id: int) -> dict[str, Any] | None:
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(conversation_id, "conversation_id")
         caminho = f"api/v1/accounts/{account_id}/conversations/{conversation_id}/update_last_seen"
-        consulta = parametros
-        return self._client._solicitar_json("POST", caminho, parametros=consulta)
+        return self._client._post(caminho)
 
-    def update_custom_attributes(self, account_id: int, conversation_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
-        """POST /api/v1/accounts/{account_id}/conversations/{conversation_id}/custom_attributes; retorna JSON ou None."""
+    def update_custom_attributes(
+        self,
+        account_id: int,
+        conversation_id: int,
+        *,
+        custom_attributes: Mapping[str, Any],
+        merge: bool = True,
+    ) -> dict[str, Any]:
+        """Por padrão mescla as chaves; merge=False substitui o hash inteiro."""
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(conversation_id, "conversation_id")
-        if not isinstance(data, Mapping):
-            raise ValueError("data deve ser objeto JSON.")
+        if not isinstance(merge, bool):
+            raise ValueError("merge deve ser bool.")
+        dados = {"custom_attributes": self._validar_atributos(custom_attributes), "merge": merge}
         caminho = f"api/v1/accounts/{account_id}/conversations/{conversation_id}/custom_attributes"
-        consulta = parametros
-        return self._client._solicitar_json("POST", caminho, dados=data, parametros=consulta)
+        resposta = self._client._post(caminho, dados=dados)
+        return self._client._exigir_objeto(
+            resposta, operacao="atualizar atributos da conversa", caminho=caminho
+        )
 
-    def delete_custom_attributes(self, account_id: int, conversation_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
-        """POST /api/v1/accounts/{account_id}/conversations/{conversation_id}/destroy_custom_attributes; retorna JSON ou None."""
+    def delete_custom_attributes(
+        self, account_id: int, conversation_id: int, *, keys: Sequence[str],
+    ) -> dict[str, Any]:
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(conversation_id, "conversation_id")
-        if not isinstance(data, Mapping):
-            raise ValueError("data deve ser objeto JSON.")
+        if isinstance(keys, (str, bytes)) or not isinstance(keys, (list, tuple)) or not keys:
+            raise ValueError("keys deve ser lista não vazia de nomes de atributos.")
+        if any(not isinstance(k, str) or not k.strip() for k in keys):
+            raise ValueError("keys deve conter somente textos não vazios.")
         caminho = f"api/v1/accounts/{account_id}/conversations/{conversation_id}/destroy_custom_attributes"
-        consulta = parametros
-        return self._client._solicitar_json("POST", caminho, dados=data, parametros=consulta)
+        resposta = self._client._post(caminho, dados={"custom_attributes": list(keys)})
+        return self._client._exigir_objeto(
+            resposta, operacao="remover atributos da conversa", caminho=caminho
+        )
 
-    def reporting_events(self, account_id: int, conversation_id: int, *, parametros: Mapping[str, Any] | None = None) -> Any:
-        """GET /api/v1/accounts/{account_id}/conversations/{conversation_id}/reporting_events; retorna JSON ou None."""
+    def reporting_events(self, account_id: int, conversation_id: int) -> Any:
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(conversation_id, "conversation_id")
         caminho = f"api/v1/accounts/{account_id}/conversations/{conversation_id}/reporting_events"
-        consulta = parametros
-        return self._client._solicitar_json("GET", caminho, parametros=consulta)
+        return self._client._get(caminho)

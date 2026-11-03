@@ -1,89 +1,124 @@
-# Chatwoot Client — Ital Leste
+# Chatwoot Python Client
 
-Biblioteca Python independente para a **Application API do Chatwoot**, extraída sem alterações funcionais de `ital-leste/chawoot-hermes-agent`, revisão consolidada `122ab821`.
+Cliente Python independente para a **Application API do Chatwoot**, com recursos HTTP organizados por domínio, entradas tipadas quando necessário e **retorno JSON nativo da API**. Pode ser utilizado por scripts, aplicações web, serviços e integrações, sem dependência de uma aplicação consumidora específica.
 
-## Uso
+> **Estado:** homologação baseada no Chatwoot **4.19.0**. A suíte automatizada valida entradas, contratos e requisições HTTP simuladas. O comportamento com uma instalação real deve ser homologado separadamente.
 
-```python
-from chatwoot_client import CWClient, ErroAPIChatwoot
+## Instalação
 
-with CWClient(base_url="https://chatwoot.example", api_token="seu-token") as cw:
-    conversa = cw.conversations.get(1, 2)
-    mensagens = cw.messages.list(1, 2)
-    # Uma escrita requer autorizacao e controle do sistema consumidor:
-    # cw.messages.create(1, 2, content="Teste", private=True)
+Requer Python **3.11+** e utiliza `httpx` para o transporte HTTP. Na raiz do repositório:
+
+```bash
+python -m pip install -e .
 ```
 
-O construtor recebe URL, token e timeout explicitamente. O pacote não carrega `.env`, não gerencia sessões Hermes, não recebe webhooks e não persiste lotes. O aplicativo consumidor decide quando uma ação Chatwoot é autorizada.
+Para instalar as dependências de teste e executar a regressão:
 
-Os recursos foram ampliados para as 22 categorias documentadas da Application API v4.19.0. Os 16 métodos originalmente extraídos permanecem com suas assinaturas; consulte a matriz completa na documentação para conhecer os 108 métodos adicionais.
-
-## Instalação e testes
-
-```sh
+```bash
 python -m pip install -e ".[test]"
 python -m pytest -q
 ```
 
-A distribuição Python se chama `ital-leste-chatwoot-client`, importada como `chatwoot_client`.
+Distribuição: `ital-leste-chatwoot-client`. Importação: `chatwoot_client`.
 
-Este repositório é privado. Aplicações externas devem utilizá-lo como dependência Git em uma referência imutável e autenticar o Git pela configuração do ambiente, **nunca com tokens escritos em arquivos versionados**.
-
-## Compatibilidade
-
-- Preservados: `CWClient`, `ErroAPIChatwoot`, `ErroConfiguracaoChatwoot`, recursos, assinaturas, endpoints e retornos JSON existentes.
-- `messages.create()` preserva a publicação de texto JSON. `messages.create_with_attachments()` adiciona multipart, e `profile.update_multipart()` suporta atualização de avatar.
-- `conversation_labels.replace()` substitui todas as etiquetas.
-- `conversation_assignments.assign()` exige exatamente um `assignee_id` ou `team_id`.
-- Não existe retry automático para POST; um timeout pode deixar resultado indeterminado.
-- O pacote não é automaticamente um plugin do Hermes; futuras ferramentas devem registrar handlers com escopo e autorização própria.
-
-## Governança
-
-Toda evolução do transporte Chatwoot acontece neste repositório. O projeto `chawoot-hermes-agent` importa esta biblioteca, e mantém apenas as decisões de webhook, admissibilidade, persistência, debounce, worker e integração Hermes. Esta extração não autoriza publicação real ou handoff.
-
-Origem: `src/chatwoot_hermes_agent/gateway/chatwoot/` do commit `122ab821`.
-
-## Contratos tipados de mensagens (homolog)
-
-A fronteira pública do pacote exporta `TextMessage`, `MediaMessage`, `Attachment`, `MimeType`, `MessageType` e `ConversationStatus`. O consumo recomendado de mensagens usa `cw.messages.send_text()` ou `send_media()`. O atributo `private: bool` representa a visibilidade; `visibility` permanece como alias de compatibilidade. Os atalhos `send_image()`, `send_audio()`, `send_video()` e `send_document()` continuam disponíveis por compatibilidade. Todos usam o mesmo endpoint oficial sem expor essa característica ao consumidor.
+## Primeiro uso
 
 ```python
-from chatwoot_client import CWClient, TextMessage, MediaMessage, Attachment, MimeType, MessageVisibility
+from chatwoot_client import CWClient
 
-with CWClient("https://chatwoot.example", "TOKEN") as cw:
-    cw.messages.send_text(1, 2, TextMessage("Bom dia!"))
-    cw.messages.send_text(1, 2, TextMessage("Nota interna", private=True))
-    cw.messages.send_document(1, 2, Attachment.from_path("laudo.pdf", mime_type=MimeType.PDF), caption="Segue o laudo")
+with CWClient("https://chatwoot.exemplo", "SEU_TOKEN") as cw:
+    perfil = cw.profile.get()
+    contatos = cw.contacts.list(1, page=1)
+    conversas = cw.conversations.list(1, status="open", page=1)
+
+    print(perfil)
+    print(contatos["payload"])
+    print(conversas["data"]["payload"])
 ```
 
-Anexos aceitam caminhos locais, bytes, fluxos binários e URL HTTPS. Para URLs de agentes ou outros sistemas externos, configure `allowed_hosts` no envio e limite tamanho/timeout. A busca remota nunca recebe o token do Chatwoot. Nenhum envio aplica retry implícito. Veja [Guia de utilização](docs/GUIA_UTILIZACAO.md).
+`CWClient` recebe a URL da instalação e o token diretamente. A biblioteca não lê arquivos `.env` ou variáveis de ambiente automaticamente. O gerenciador `with` fecha a sessão HTTP. A autenticação padrão usa `Authorization: Bearer TOKEN`; instalações com cabeçalho legado podem usar `auth_mode="api_access_token"`. Veja [Autenticação](docs/AUTENTICACAO.md).
 
-## Operações de conversa e etiquetas para integração de agentes
+## Como fornecer os dados
 
-Além do envio de mensagens, a API pública oferece contratos e métodos para as ações frequentes do Hermes:
+Há três estilos de entrada, escolhidos pela complexidade do recurso:
+
+| Entrada | Uso | Exemplo |
+|---|---|---|
+| **Argumentos tipados** | Campos simples e parâmetros de consulta | `cw.canned_responses.create(1, short_code="prazo", content="Retornaremos em breve.")` |
+| **Contrato tipado** | Entrada estruturada com validações | `cw.contacts.update(1, 42, Contact(name="Maria"))` |
+| **Payload da API** | Método sem contrato específico | `cw.labels.update(1, 7, {"description": "Atendimento"})` |
+
+**Quando não houver um contrato de entrada próprio, utilize diretamente os campos e a estrutura documentados pela Application API**, geralmente passando `dict` ou `Mapping[str, Any]`. Não é necessário criar uma dataclass para toda operação.
+
+Modelos de entrada disponíveis: `Contact`, `ConversationCreate`, `FilterCondition`, `TextMessage`, `MediaMessage`, `Attachment` e `LabelDefinition`. Enumerações incluem `ConversationStatus`, `ConversationPriority`, `MessageType` e `MimeType`.
+
+### Exemplo de atualização parcial de contato
 
 ```python
-from chatwoot_client import ConversationStatus, LabelDefinition
+from chatwoot_client import CWClient, Contact
 
-cw.conversations.set_status(1, 100, ConversationStatus.PENDING)
-cw.labels.create_label(1, LabelDefinition("aguardando-laudo", "#224466"))
-cw.conversation_labels.add(1, 100, "aguardando-laudo")
-cw.conversation_labels.remove(1, 100, "aguardando-laudo")
+with CWClient("https://chatwoot.exemplo", "SEU_TOKEN") as cw:
+    criado = cw.contacts.create(
+        1, Contact(name="Maria", phone_number="+5511999999999"), inbox_id=1
+    )
+    contato_id = criado["payload"]["contact"]["id"]
+    cw.contacts.update(1, contato_id, Contact(name="Maria Silva"))
 ```
 
-`conversation_labels.add()` realiza GET da lista atual e POST da união deduplicada, sem apagar etiquetas pré-existentes. `remove()` preserva as demais. `replace()` ainda substitui integralmente a lista. A operação de união não é atômica; consumidores concorrentes precisam serializar mutações por conversa. Criar uma etiqueta no catálogo da conta não a associa automaticamente a uma conversa. A biblioteca não decide quais etiquetas o Hermes está autorizado a alterar.
+O `update` acima envia somente `{"name": "Maria Silva"}`. Campos **omitidos** não entram no JSON e não substituem valores cadastrados. Um `None` **explicitamente informado** é enviado como JSON `null`, sujeito às regras do Chatwoot. As validações locais verificam tipos e formatos básicos; unicidade e permissões permanecem sob responsabilidade do servidor.
 
-## Expansão da Application API (homolog)
+### Exemplo de conversas e mensagens
 
-Cobertura de código de 124 operações da Application API do Chatwoot v4.19.0. Os contratos anteriores continuam presentes; os novos recursos aceitam payloads data e parâmetros de consulta. Os testes simulados não substituem homologação real da instalação.
+```python
+from chatwoot_client import (
+    CWClient, ConversationCreate, ConversationStatus,
+    ConversationPriority, FilterCondition, TextMessage,
+)
 
-- [Arquitetura](docs/ARQUITETURA.md)
-- [Matriz dos endpoints](docs/MATRIZ_API.md)
-- [Contratos HTTP](docs/CONTRATOS_HTTP.md)
-- [Autenticação](docs/AUTENTICACAO.md)
-- [Guia de utilização](docs/GUIA_UTILIZACAO.md)
-- [Compatibilidade](docs/COMPATIBILIDADE.md)
-- [Homologação](docs/HOMOLOGACAO.md)
+with CWClient("https://chatwoot.exemplo", "SEU_TOKEN") as cw:
+    criada = cw.conversations.create(
+        1, ConversationCreate(source_id="origem-do-canal", inbox_id=1, contact_id=42)
+    )
+    cw.conversations.set_status(1, 9, ConversationStatus.PENDING)
+    cw.conversations.update(1, 9, priority=ConversationPriority.HIGH)
 
-A autenticação padrão é Bearer; auth_mode="api_access_token" ativa o cabeçalho legado. Anexos podem ser enviados por messages.create_with_attachments(). Nenhuma escrita é repetida automaticamente após timeout.
+    # Preserva as outras chaves: merge=True é o padrão do cliente.
+    cw.conversations.update_custom_attributes(
+        1, 9, custom_attributes={"interesse": "gnv"}
+    )
+
+    filtro = FilterCondition(
+        attribute_key="status", filter_operator="equal_to", values=["pending"]
+    )
+    filtradas = cw.conversations.filter(1, [filtro])
+    enviada = cw.messages.send_text(1, 9, TextMessage("Olá!"))
+```
+
+`FilterCondition` é usado por `contacts.filter()` e `conversations.filter()`. Para enviar anexos, utilize `MediaMessage` e `Attachment`, com suporte a caminhos, bytes, streams e URLs HTTPS sujeitas às verificações do cliente. Veja o [guia de utilização](docs/GUIA_UTILIZACAO.md).
+
+## Saídas e erros
+
+Cada método retorna **o JSON nativo da API** (`dict`, `list` ou `None` quando não existe corpo). Os envelopes variam conforme o recurso e não são normalizados:
+
+- `contacts.list()` → `{"meta": {...}, "payload": [...]}`
+- `conversations.list()` → `{"data": {"meta": {...}, "payload": [...]}}`
+- `canned_responses.list()` → `[...]`
+
+Paginação, cursores e metadados são preservados; não há agregação automática de páginas. Falhas HTTP, de conexão ou de JSON geram `ErroAPIChatwoot`, que informa o caminho e, quando disponível, o status HTTP, sem incluir o corpo completo nem o token na mensagem de erro. **Escritas não são repetidas automaticamente após timeout.**
+
+## Organização e documentação
+
+`client.py` compõe os recursos; `transport.py` executa requisições; `models/` abriga somente os contratos de **entrada** necessários; `enums/` reúne valores tipados; e os demais módulos de `src/chatwoot_client/` implementam as operações por recurso.
+
+A matriz documenta **124 pares verbo/rota mapeados** da Application API 4.19.0. Mapeamento e testes simulados não demonstram, por si só, a execução bem-sucedida de todos esses endpoints em uma instalação real.
+
+| Documento | Finalidade |
+|---|---|
+| [Guia de utilização](docs/GUIA_UTILIZACAO.md) | Exemplos e assinaturas modeladas |
+| [Matriz da API](docs/MATRIZ_API.md) | Verbos, rotas e recursos |
+| [Arquitetura](docs/ARQUITETURA.md) | Responsabilidades e limites |
+| [Contratos HTTP](docs/CONTRATOS_HTTP.md) | Requisições, respostas e falhas |
+| [Autenticação](docs/AUTENTICACAO.md) | Credenciais e modos de autenticação |
+| [Compatibilidade](docs/COMPATIBILIDADE.md) | Versões e restrições |
+| [Homologação](docs/HOMOLOGACAO.md) | Testes e validação integrada |
+| [Changelog](CHANGELOG.md) | Histórico de alterações |

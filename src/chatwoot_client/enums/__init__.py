@@ -1,6 +1,6 @@
 """Enumerações públicas de contratos da Application API."""
-from .messages import MessageType, MessageVisibility, MessageContentType
+from .messages import MessageType, MessageContentType
 from .mime_types import MimeType
-from .conversations import ConversationStatus
+from .conversations import ConversationStatus, ConversationPriority
 
-__all__ = ["MessageType", "MessageVisibility", "MessageContentType", "MimeType", "ConversationStatus"]
+__all__ = ["MessageType", "MessageContentType", "MimeType", "ConversationStatus", "ConversationPriority"]

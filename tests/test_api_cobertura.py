@@ -1,7 +1,7 @@
 """Contratos HTTP de 108 operações novas (OpenAPI Chatwoot 4.19.0)."""
 import httpx
 import pytest
-from chatwoot_client import CWClient
+from chatwoot_client import CWClient, Contact, ConversationCreate, ConversationPriority, FilterCondition
 
 CASOS = [
   [
@@ -137,9 +137,7 @@ CASOS = [
   [
     "canned_responses",
     "list",
-    [
-      1
-    ],
+    [1],
     {},
     "GET",
     "/api/v1/accounts/1/canned_responses",
@@ -148,13 +146,8 @@ CASOS = [
   [
     "canned_responses",
     "create",
-    [
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1],
+    {"short_code": "teste", "content": "Texto de teste"},
     "POST",
     "/api/v1/accounts/1/canned_responses",
     True
@@ -162,14 +155,8 @@ CASOS = [
   [
     "canned_responses",
     "update",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1, 1],
+    {"content": "Texto atualizado"},
     "PATCH",
     "/api/v1/accounts/1/canned_responses/1",
     True
@@ -177,10 +164,7 @@ CASOS = [
   [
     "canned_responses",
     "delete",
-    [
-      1,
-      1
-    ],
+    [1, 1],
     {},
     "DELETE",
     "/api/v1/accounts/1/canned_responses/1",
@@ -268,9 +252,7 @@ CASOS = [
     "create",
     [
       1,
-      {
-        "name": "teste"
-      }
+      Contact(name="teste")
     ],
     {},
     "POST",
@@ -283,9 +265,7 @@ CASOS = [
     [
       1,
       1,
-      {
-        "name": "teste"
-      }
+      Contact(name="teste")
     ],
     {},
     "PUT",
@@ -357,12 +337,7 @@ CASOS = [
   [
     "contacts",
     "filter",
-    [
-      1,
-      {
-        "name": "teste"
-      }
-    ],
+    [1, [FilterCondition(attribute_key="name", filter_operator="contains", values=["teste"])]],
     {},
     "POST",
     "/api/v1/accounts/1/contacts/filter",
@@ -569,12 +544,7 @@ CASOS = [
   [
     "conversations",
     "create",
-    [
-      1,
-      {
-        "name": "teste"
-      }
-    ],
+    [1, ConversationCreate(source_id="origem-teste", inbox_id=1, contact_id=1)],
     {},
     "POST",
     "/api/v1/accounts/1/conversations",
@@ -583,14 +553,8 @@ CASOS = [
   [
     "conversations",
     "update",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1, 1],
+    {"priority": ConversationPriority.HIGH},
     "PATCH",
     "/api/v1/accounts/1/conversations/1",
     True
@@ -598,14 +562,8 @@ CASOS = [
   [
     "conversations",
     "toggle_priority",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1, 1],
+    {"priority": ConversationPriority.LOW},
     "POST",
     "/api/v1/accounts/1/conversations/1/toggle_priority",
     True
@@ -613,14 +571,8 @@ CASOS = [
   [
     "conversations",
     "set_typing_status",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1, 1],
+    {"typing_status": "on", "is_private": False},
     "POST",
     "/api/v1/accounts/1/conversations/1/toggle_typing_status",
     True
@@ -640,14 +592,8 @@ CASOS = [
   [
     "conversations",
     "update_custom_attributes",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1, 1],
+    {"custom_attributes": {"name": "teste"}},
     "POST",
     "/api/v1/accounts/1/conversations/1/custom_attributes",
     True
@@ -655,14 +601,8 @@ CASOS = [
   [
     "conversations",
     "delete_custom_attributes",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1, 1],
+    {"keys": ["name"]},
     "POST",
     "/api/v1/accounts/1/conversations/1/destroy_custom_attributes",
     True
@@ -1422,7 +1362,7 @@ def test_contrato_operacao(recurso,nome,args,kwargs,verbo,caminho,tem_corpo):
     chamadas = []
     def responder(req):
         chamadas.append(req)
-        return httpx.Response(200, json={"ok": True})
+        return httpx.Response(200, json=[] if recurso == "canned_responses" and nome == "list" else {"ok": True})
     with CWClient("https://chatwoot.exemplo", "token") as cw:
         headers = dict(cw._http.headers)
         cw._http.close()
@@ -1432,7 +1372,7 @@ def test_contrato_operacao(recurso,nome,args,kwargs,verbo,caminho,tem_corpo):
             transport=httpx.MockTransport(responder),
         )
         resultado = getattr(getattr(cw,recurso),nome)(*args,**kwargs)
-    assert resultado == {"ok": True}
+    assert resultado == ([] if recurso == "canned_responses" and nome == "list" else {"ok": True})
     assert len(chamadas) == 1
     req = chamadas[0]
     assert req.method == verbo

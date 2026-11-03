@@ -1,36 +1,46 @@
 # Plano de homologação
 
-## Validação local e CI
+## Regressão sem acesso à VPS
 
-    python -m pip install -e ".[test]"
-    python -m pip check
-    python -m pytest -q
+```sh
+python -m pip install -e ".[test]"
+python -m pip check
+python -m pytest -q
+```
 
-Os testes unitários e de contrato usam httpx.MockTransport; não devem disparar mensagens nem acessar VPS.
+Os testes usam `httpx.MockTransport` e não podem enviar mensagens reais, excluir dados reais nem consumir credenciais do ambiente.
 
-## Homologação integrada
+## Cenários mínimos
 
-1. Registrar versão/edição da instalação Chatwoot, base URL e escopo de permissões (sem armazenar token).
-2. Executar leituras em conta de testes, incluindo filtros, paginação e consulta por ID.
-3. Autorizar separadamente escritas por categoria, verificando estado final, não apenas HTTP 200.
-4. Verificar `send_text` público/privado, `send_media` e atalhos de imagem, áudio, vídeo e PDF, multipart com legenda, erros de autorização e timeouts sem reenvio automático.
-5. Exercitar caminhos locais na máquina do processo, URLs HTTPS de hosts permitidos, arquivos binários e fluxo aberto; confirmar MIME, nome, limites, fechamento e ausência de Base64.
-6. Para mídia recebida de fontes externas/IA, configurar `allowed_hosts` e controles de saída de rede, e verificar bloqueio de URL local, redirecionamentos e tamanhos excedidos.
-7. Usar apenas dados de teste para operações de exclusão, mesclagem e alterações administrativas.
-8. Validar o consumidor chawoot-hermes-agent com dependência fixada em SHA ou tag, sem alterar as regras homologadas de webhook/worker.
-9. Documentar cenário, resultado, ambiente, evidência e pendências, sem dados pessoais ou credenciais.
+1. Testar `messages.send_text(TextMessage)` público e privado, JSON gerado, retorno nativo e erro sem reenvio.
+2. Testar `messages.send_media(MediaMessage)` com PDF, imagem, áudio, vídeo, bytes, arquivo local, stream e HTTPS permitido; validar nome/MIME, múltiplos anexos, `is_voice_message`, tamanho e bloqueios SSRF.
+3. Conferir `conversations.set_status(ConversationStatus)`, incluindo `SNOOZED` e `snoozed_until`, rejeitando strings.
+4. Criar `LabelDefinition` via `labels.create()`; verificar campos, retorno JSON e falhas antes do envio.
+5. Incluir e remover etiquetas de conversas, sem duplicar nem apagar outras; em erro no GET, não disparar POST. Testar concorrência de alterações no executor.
+6. Listar Canned Responses com e sem `search`, sempre por GET, conferindo o array JSON original e a filtragem por atalho/conteúdo.
+7. Criar e atualizar parcialmente respostas rápidas com parâmetros nomeados `short_code`/`content`, exigindo os campos necessários por operação; rejeitar entrada por `Mapping` e campos vazios antes do HTTP.
+8. Confirmar que `CannedResponse`, `list_typed`, `CannedResponseCreate`, `CannedResponseUpdate`, `messages.create`, `messages.create_with_attachments`, `send_document`, `labels.create_label` e `MessageVisibility` não são interfaces públicas oficiais.
+9. Testar HTTP 403/422/503, JSON inválido e corpo vazio, sem retry automático de escrita; confirmar que campos extras de retorno não são descartados.
+10. Confirmar que os recursos sem contratos específicos continuam podendo utilizar payloads da API, mantendo cobertura dos verbos/rotas da matriz.
+11. Para Contacts, criar/atualizar com `Contact`, garantindo que `Contact(name="Novo")` envie somente `name`, não leia o contato previamente e não produza chaves `email`, `phone_number` ou outras ausentes.
+12. Diferenciar `Contact(email=None)` (JSON `null`) de e-mail omitido; manter `blocked=False`, dicionários vazios e mesclagem dos atributos sob a regra do backend.
+13. Rejeitar antes do HTTP e-mail inválido, telefone fora de E.164, payload vazio, objetos com campos inválidos e dados não JSON; verificar create com inbox e retorno `payload.contact`.
+14. Criar conversa somente com `ConversationCreate`, exigindo `source_id` e preservando retornos JSON com campos adicionais; rejeitar status/IDs/mensagens inválidos antes do HTTP.
+15. Usar `FilterCondition` em `contacts.filter()` e `conversations.filter()`, verificando envelopes diferentes de `conversations.list()` e `conversations.filter()` e rejeitando listas livres de dicionários.
+16. Confirmar prioridade tipada para `update()`/`toggle_priority()`, `priority=None` explícito, digitação `on/off` e `is_private: bool` sem entrada Mapping.
+17. Verificar que `update_custom_attributes()` envia `merge=True` como padrão, que `merge=False` substitui deliberadamente e que `delete_custom_attributes(keys=...)` remove apenas chaves solicitadas; nenhuma leitura/atualização adicional.
+18. Testar saída `None` para `head :ok`, status/handoff por `set_status()` e que os recursos de conversas preservam as 13 rotas HTTP oficiais.
 
-## Barreiras
+19. Confirmar que URL de configuração com tipo inválido gera `ErroConfiguracaoChatwoot`, não `AttributeError`.
+20. Confirmar que objetos JSON recebidos por `Contact` e `ConversationCreate` são copiados e revalidados na serialização, sem permitir dados não JSON nem uma mensagem sem `content` válido após a construção.
+21. Rejeitar cursores de mensagens com tipos incorretos e valores negativos antes de HTTP, preservando o cursor zero usado em integrações existentes.
+22. Rejeitar payloads JSON genéricos não serializáveis, com `NaN` ou chaves de tipo incorreto, antes de HTTP, sem exigir dataclass.
+23. Confirmar que `toggle_priority()` exige `priority` explícito; validar novamente `message.content` em `ConversationCreate` mesmo após mutação de atributos internos.
 
-Testes simulados não comprovam compatibilidade operacional em servidor real. A promoção à main exige aprovação da regressão, da revisão e dos cenários integrados pertinentes.
+## Homologação integrada posterior
 
-## Regressão das operações para Hermes
+Registrar versão/edição da instalação Chatwoot, URL e permissões, sem tokens em relatórios. Executar leituras reais primeiro. Qualquer POST, PATCH ou DELETE real deve ser autorizado por categoria e usar somente dados de teste, com verificação posterior do estado no dashboard.
 
-- `ConversationStatus`: testar cada estado e a compatibilidade de strings legadas.
-- Catálogo: criar `LabelDefinition` em conta de teste; conferir cor, campos opcionais e retorno.
-- Associação: partir de duas etiquetas existentes, adicionar uma terceira e confirmar que as primeiras persistem; não duplicar na segunda chamada.
-- Remoção: remover uma etiqueta e confirmar que as demais permanecem.
-- Substituição intencional: confirmar que `replace` continua sobrescrevendo todas.
-- Resposta GET inválida/HTTP 5xx: confirmar que `add` não envia POST.
-- Concorrência: simular duas alterações em uma conversa e confirmar a necessidade de ordenação por conversa no executor Hermes.
-- Mensagem de voz: testar o flag `is_voice_message` com `audio/ogg`, sem pressupor paridade dos adaptadores Evolution e WhatsApp Cloud.
+Validar separadamente o comportamento de quaisquer canais e aplicações que consumirem a biblioteca, inclusive mídia e mensagens privadas. HTTP 2xx do Chatwoot não comprova entrega final em outro canal. Os consumidores devem fixar SHA/tag da biblioteca e homologar suas operações antes de promover versões a produção.
+
+A aprovação do CI verifica contratos simulados, não homologação operacional na instalação real.
