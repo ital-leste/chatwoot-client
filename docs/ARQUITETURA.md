@@ -12,14 +12,14 @@ Tipos primitivos como IDs, parâmetros de busca, booleanos e paginação não ju
 
 - `client.py`: composição dos recursos; transporte HTTP compartilhado em `_request`; cabeçalhos; exceções; os métodos privados `_get/_post/_put/_patch/_delete`; `_solicitar_json` como adaptador interno dos recursos não refatorados.
 - `transport.py`: execução HTTP, serialização JSON, multipart e formulário.
-- `models/`: contratos imutáveis de **entrada** quando agregam estrutura ou regras (`TextMessage`, `MediaMessage`, `Attachment`, `LabelDefinition`, `Contact`); Canned Responses usam parâmetros simples.
-- `enums/`: tipos de mensagens, MIME, conteúdo e estados de conversa.
+- `models/`: contratos imutáveis de **entrada** quando agregam estrutura ou regras (`TextMessage`, `MediaMessage`, `Attachment`, `LabelDefinition`, `Contact`, `ConversationCreate` e `FilterCondition`); Canned Responses usam parâmetros simples.
+- `enums/`: tipos de mensagens, MIME, conteúdo, estados de conversa e prioridades (`ConversationPriority`).
 - `message_payload.py`: serialização de texto/mídia para os campos oficiais.
 - `attachment_resolver.py`: caminhos, bytes, streams e downloads HTTPS com limites.
 - `messages.py`: `send_text(TextMessage)` e `send_media(MediaMessage)`; um endpoint, JSON ou multipart conforme os anexos. Não há `messages.create`, `create_with_attachments` ou atalhos por tipo de mídia.
 - `labels.py`: `create(LabelDefinition)`; métodos sem contrato de entrada específico ainda seguem a API.
 - `conversation_labels.py`: `add/remove` consolidam listas por GET + POST, `replace` substitui integralmente.
-- `conversations.py`: `set_status(ConversationStatus)` exige enum; consultas de conversas preservam JSON nativo.
+- `conversations.py`: `create(ConversationCreate)` e `filter(FilterCondition)`; prioridade via `ConversationPriority`, status por `ConversationStatus`, operações simples por parâmetros tipados. Consultas preservam JSON nativo.
 - `canned_responses.py`: `list(search=None)` faz GET completo/filtrado; `create(short_code=..., content=...)` e `update(short_code=None, content=None)` validam entradas simples; `delete(id)` remove.
 
 ## Contatos: contrato único e atualização não destrutiva
@@ -31,6 +31,18 @@ Tipos primitivos como IDs, parâmetros de busca, booleanos e paginação não ju
 `Contact` contém somente os campos de cadastro suportados pelo payload JSON nesta etapa. E-mail possui checagem simples, telefone segue E.164, `blocked` exige bool e dicionários de atributos precisam ser JSON válidos. Validações de unicidade, disponibilidade de campos, permissões e comportamento de `null` são responsabilidade do backend. Nenhum campo de saída (`id`, timestamps, inboxes, etc.) entra na dataclass.
 
 A API utiliza `PUT` na especificação, e o controlador também permite `PATCH`. O cliente preserva `PUT`, enviando **somente** os campos do objeto informados. O Rails realiza atualização parcial e mescla chaves de `additional_attributes`/`custom_attributes` em vez de substituir o objeto inteiro. A criação/atualização de avatar binário por multipart será tratada separadamente; `avatar_url` é aceita como string pelo contrato.
+
+## Conversas: entradas tipadas, atributos preservados e filtros compartilhados
+
+A criação usa a dataclass imutável `ConversationCreate`, que representa identidade do canal (`source_id`), `inbox_id`, `contact_id`, estado opcional e relações de atribuição; aceita atributos JSON e `message` opcional, exigindo `message.content` quando há mensagem. Não há dataclass de saída. A API exige `source_id`; campos opcionais `None` não entram no payload de criação.
+
+O contrato `FilterCondition` é compartilhado por `contacts.filter()` e `conversations.filter()`. Cada recurso só serializa os objetos `FilterCondition` dentro de `{"payload": [...]}`, sem aceitar listas de dicionários alternativas nas operações modeladas. Filtros de leitura simples de `conversations.list()` e `conversations.meta()` recebem parâmetros nomeados (`status`, `q`, IDs, `labels`), sem dataclasses. `list()` retorna `data.meta/data.payload`; `filter()` e `meta()` preservam seus envelopes distintos.
+
+`conversations.update(priority=ConversationPriority.HIGH)` envia `{"priority": "high"}`; `priority=None` envia explicitamente JSON `null` para remover prioridade. `toggle_priority()` possui a mesma entrada simples e o mesmo JSON; sucesso sem corpo retorna `None`. `set_typing_status(typing_status="on"|"off", is_private=bool)` não precisa de contrato. `set_status(ConversationStatus)` continua tipado e conserva a semântica de handoff do Chatwoot ao mudar `pending` para `open` sob um AgentBot.
+
+**Atenção à semântica do servidor:** `conversations.update_custom_attributes(custom_attributes=..., merge=True)` envia `merge=true` expressamente, preservando por padrão chaves de atributos não informadas. `merge=False` substitui o conjunto inteiro de atributos e só deve ser usado intencionalmente. A exclusão de atributos usa `delete_custom_attributes(keys=[...])`. Não há GET prévio nem alteração de outros campos no cliente. O Chatwoot continua responsável por validar definições, permissões e as alterações definitivas.
+
+Consultas e escritas retornam a resposta JSON nativa: `list()` possui `{"data": {"meta": ..., "payload": [...]}}`, `filter()` possui `{"meta": ..., "payload": [...]}`, `get/create/update()` retornam objetos da conversa, e operações com `head :ok` devolvem `None`. Validar a forma da resposta quando conhecida, sem normalizar envelopes nem impor DTOs.
 
 ## Respostas rápidas
 

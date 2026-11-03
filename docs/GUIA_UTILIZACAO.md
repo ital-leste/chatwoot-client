@@ -7,7 +7,8 @@ Instalação: `python -m pip install -e ".[test]"`. Validação: `python -m pyte
 ```python
 from chatwoot_client import (
     CWClient, TextMessage, MediaMessage, Attachment,
-    MimeType, MessageType, ConversationStatus, Contact,
+    MimeType, MessageType, ConversationStatus, ConversationPriority,
+    Contact, ConversationCreate, FilterCondition,
     LabelDefinition, ErroAPIChatwoot, ErroAnexoChatwoot,
 )
 ```
@@ -111,6 +112,58 @@ cw.conversation_labels.replace(1, 2, ["aguardando-laudo"])
 ```
 
 `replace()` substitui toda a lista. `add()` e `remove()` leem a lista atual e escrevem o conjunto consolidado, preservando as demais etiquetas, mas **não são operações atômicas**. O executor deve serializar operações concorrentes por conversa. A criação de uma etiqueta no catálogo não a associa automaticamente à conversa. Outros métodos de etiqueta que ainda não possuem contrato (como atualização parcial) permanecem com os parâmetros da API.
+
+## Conversas — padronização da Application API
+
+```python
+from chatwoot_client import (
+    ConversationCreate, ConversationStatus, ConversationPriority, FilterCondition,
+)
+
+# Criação com contrato tipado (source_id identifica a origem no canal).
+nova = cw.conversations.create(
+    1,
+    ConversationCreate(
+        source_id="origem-canal", inbox_id=1, contact_id=42,
+        status=ConversationStatus.OPEN,
+    ),
+)
+
+# Prioridade: enum obrigatório; None explícito limpa o valor anterior.
+cw.conversations.update(1, 9, priority=ConversationPriority.HIGH)
+cw.conversations.update(1, 9, priority=None)
+
+# Estado explicitamente definido; snoozed_until em Unix segundos.
+cw.conversations.set_status(1, 9, ConversationStatus.PENDING)
+
+# Digitação: entrada simples, sem dataclass.
+cw.conversations.set_typing_status(1, 9, typing_status="on", is_private=False)
+
+# Filtros avançados compartilhados com Contacts.
+condicao = FilterCondition(
+    attribute_key="status", filter_operator="equal_to", values=["pending"]
+)
+conversas = cw.conversations.filter(1, [condicao], page=1)
+contatos = cw.contacts.filter(1, [
+    FilterCondition(attribute_key="name", filter_operator="contains", values=["Maria"])
+])
+
+# Por padrão, preserva os demais atributos existentes da conversa.
+cw.conversations.update_custom_attributes(
+    1, 9, custom_attributes={"interesse": "gnv"}
+)
+# Substituir todos os atributos exige intenção explícita.
+cw.conversations.update_custom_attributes(
+    1, 9, custom_attributes={"interesse": "gnv"}, merge=False
+)
+cw.conversations.delete_custom_attributes(1, 9, keys=["interesse"])
+```
+
+`create()` exige `ConversationCreate`. Os métodos simples não possuem dataclasses redundantes. `update()` opera sobre prioridade; `priority=None` é uma solicitação **explícita** de limpeza (não é ausência). O contrato `FilterCondition` usa os mesmos campos de filtro no Chatwoot para contatos e conversas. Sua validação é estrutural; a validade de cada operador para cada atributo cabe ao backend.
+
+**Retornos diferentes permanecem diferentes:** `conversations.list()` usa envelope `data.meta/data.payload`; `conversations.filter()` usa `meta/payload`; `conversations.get/create/update()` devolvem objetos, não DTOs. `toggle_priority()` e `set_typing_status()` normalmente retornam `None` (HTTP sem corpo).
+
+`update_custom_attributes()` envia `merge=True` por padrão, diferentemente do padrão do servidor (`merge=false`). O contrato protege contra substituição acidental dos demais atributos. A atualização de status `pending` → `open` pode disparar handoff no Chatwoot ao usar uma credencial AgentBot; a aplicação consumidora deve determinar sua política de autorização.
 
 ## Contatos — dataclass de entrada e preservação de campos
 

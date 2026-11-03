@@ -2,6 +2,10 @@
 
 ## Unreleased — homolog
 
+- Conversations padronizado: `ConversationCreate` na criação; `FilterCondition` compartilhado com `contacts.filter()`; prioridade por enum `ConversationPriority`, digitação e atributos por parâmetros tipados.
+- Atributos personalizados de conversas agora enviam `merge=True` por padrão, preservando chaves omitidas; `merge=False` solicita substituição integral. Exclusão de atributos recebe somente `keys`.
+- Mantidas as rotas oficiais e os retornos JSON nativos; removidas entradas `Mapping` redundantes das operações padronizadas de Conversations.
+
 - Contacts: contrato de entrada imutável `Contact` para criação e atualização; campos omitidos preservados no JSON de PUT; `None` explícito enviado como `null` e validação local de formatos e tipos.
 - `contacts.create()` aceita associação opcional à inbox por `inbox_id`/`source_id`; respostas continuam JSON nativo. Exclusão e métodos de leitura não foram alterados.
 

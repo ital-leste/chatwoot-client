@@ -8,7 +8,8 @@ Cliente Python independente para a **Application API do Chatwoot 4.19.0**. A bib
 
 ```python
 from chatwoot_client import (
-    CWClient, TextMessage, MediaMessage, Contact,
+    CWClient, TextMessage, MediaMessage, Contact, ConversationCreate,
+    ConversationPriority, FilterCondition,
     Attachment, MimeType, LabelDefinition, ConversationStatus,
 )
 
@@ -23,8 +24,23 @@ with CWClient("https://chatwoot.exemplo", "TOKEN") as cw:
         caption="Segue o laudo",
     ))
 
-    # Atualização de status por enumeração
+    # Conversas: contrato de criação, status e prioridade tipados
+    nova = cw.conversations.create(
+        1, ConversationCreate(source_id="identificador-canal", inbox_id=1, contact_id=42)
+    )
     cw.conversations.set_status(1, 2, ConversationStatus.PENDING)
+    cw.conversations.update(1, 2, priority=ConversationPriority.HIGH)
+
+    # Atualização de uma chave sem apagar atributos existentes
+    cw.conversations.update_custom_attributes(
+        1, 2, custom_attributes={"interesse": "gnv"}
+    )
+
+    # Condição estruturada reutilizada também em contacts.filter()
+    filtro = FilterCondition(
+        attribute_key="status", filter_operator="equal_to", values=["pending"]
+    )
+    filtradas = cw.conversations.filter(1, [filtro])
 
     # Etiqueta por contrato; adicionar à conversa sem apagar as antigas
     cw.labels.create(1, LabelDefinition("aguardando-laudo", "#224466"))

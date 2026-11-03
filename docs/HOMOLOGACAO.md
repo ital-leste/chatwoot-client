@@ -25,6 +25,11 @@ Os testes usam `httpx.MockTransport` e não podem enviar mensagens reais, exclui
 11. Para Contacts, criar/atualizar com `Contact`, garantindo que `Contact(name="Novo")` envie somente `name`, não leia o contato previamente e não produza chaves `email`, `phone_number` ou outras ausentes.
 12. Diferenciar `Contact(email=None)` (JSON `null`) de e-mail omitido; manter `blocked=False`, dicionários vazios e mesclagem dos atributos sob a regra do backend.
 13. Rejeitar antes do HTTP e-mail inválido, telefone fora de E.164, payload vazio, objetos com campos inválidos e dados não JSON; verificar create com inbox e retorno `payload.contact`.
+14. Criar conversa somente com `ConversationCreate`, exigindo `source_id` e preservando retornos JSON com campos adicionais; rejeitar status/IDs/mensagens inválidos antes do HTTP.
+15. Usar `FilterCondition` em `contacts.filter()` e `conversations.filter()`, verificando envelopes diferentes de `conversations.list()` e `conversations.filter()` e rejeitando listas livres de dicionários.
+16. Confirmar prioridade tipada para `update()`/`toggle_priority()`, `priority=None` explícito, digitação `on/off` e `is_private: bool` sem entrada Mapping.
+17. Verificar que `update_custom_attributes()` envia `merge=True` como padrão, que `merge=False` substitui deliberadamente e que `delete_custom_attributes(keys=...)` remove apenas chaves solicitadas; nenhuma leitura/atualização adicional.
+18. Testar saída `None` para `head :ok`, status/handoff por `set_status()` e que os recursos de conversas preservam as 13 rotas HTTP oficiais.
 
 ## Homologação integrada posterior
 
