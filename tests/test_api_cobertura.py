@@ -571,14 +571,8 @@ CASOS = [
   [
     "conversations",
     "set_typing_status",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1, 1],
+    {"typing_status": "on", "is_private": False},
     "POST",
     "/api/v1/accounts/1/conversations/1/toggle_typing_status",
     True
@@ -598,14 +592,8 @@ CASOS = [
   [
     "conversations",
     "update_custom_attributes",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1, 1],
+    {"custom_attributes": {"name": "teste"}},
     "POST",
     "/api/v1/accounts/1/conversations/1/custom_attributes",
     True
@@ -613,14 +601,8 @@ CASOS = [
   [
     "conversations",
     "delete_custom_attributes",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1, 1],
+    {"keys": ["name"]},
     "POST",
     "/api/v1/accounts/1/conversations/1/destroy_custom_attributes",
     True
