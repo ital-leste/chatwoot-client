@@ -1,6 +1,6 @@
 # Chatwoot Python Client
 
-Cliente Python independente para a **Application API do Chatwoot**, com recursos HTTP organizados por domínio, entradas tipadas quando necessário e **retorno JSON nativo da API**. Pode ser utilizado por scripts, aplicações web, serviços e integrações, sem dependência de uma aplicação consumidora específica.
+Cliente Python para a **Application API do Chatwoot**, com recursos HTTP organizados por domínio, entradas tipadas quando necessário e **retorno JSON nativo da API**. Pode ser utilizado por scripts, aplicações web, serviços e integrações, sem dependência de uma aplicação consumidora específica.
 
 > **Estado:** homologação baseada no Chatwoot **4.19.0**. A suíte automatizada valida entradas, contratos e requisições HTTP simuladas. O comportamento com uma instalação real deve ser homologado separadamente.
 
