@@ -117,3 +117,24 @@ def test_campos_ausentes_em_contact_nao_viram_null():
     with _cliente(chamadas) as cw:
         cw.contacts.update(1, 42, Contact(name="Maria"))
     assert json.loads(chamadas[0].content) == {"name": "Maria"}
+
+
+@pytest.mark.parametrize("dados", [
+    {"extra": object()},
+    {"extra": float("nan")},
+    {1: "chave_nao_textual"},
+])
+def test_json_generico_invalido_falha_antes_de_http(dados):
+    chamadas = []
+    with _cliente(chamadas) as cw, pytest.raises(ValueError):
+        cw.labels.update(1, 7, dados)
+    assert chamadas == []
+
+
+def test_mensagem_mutada_sem_content_valido_falha_antes_de_http():
+    conversa = ConversationCreate(source_id="origem", message={"content": "Oi"})
+    conversa.message["content"] = ""
+    chamadas = []
+    with _cliente(chamadas) as cw, pytest.raises(ValueError):
+        cw.conversations.create(1, conversa)
+    assert chamadas == []

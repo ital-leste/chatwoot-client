@@ -34,6 +34,8 @@ Os testes usam `httpx.MockTransport` e não podem enviar mensagens reais, exclui
 19. Confirmar que URL de configuração com tipo inválido gera `ErroConfiguracaoChatwoot`, não `AttributeError`.
 20. Confirmar que objetos JSON recebidos por `Contact` e `ConversationCreate` são copiados e revalidados na serialização, sem permitir dados não JSON nem uma mensagem sem `content` válido após a construção.
 21. Rejeitar cursores de mensagens com tipos incorretos e valores negativos antes de HTTP, preservando o cursor zero usado em integrações existentes.
+22. Rejeitar payloads JSON genéricos não serializáveis, com `NaN` ou chaves de tipo incorreto, antes de HTTP, sem exigir dataclass.
+23. Confirmar que `toggle_priority()` exige `priority` explícito; validar novamente `message.content` em `ConversationCreate` mesmo após mutação de atributos internos.
 
 ## Homologação integrada posterior
 

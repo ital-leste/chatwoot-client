@@ -3,7 +3,7 @@
 ## Unreleased — homolog
 
 - README principal reescrito para apresentar o cliente Python de forma neutra, com uso inicial, entrada tipada quando necessária e payload da API como padrão para operações não modeladas.
-- Auditoria de validações: URL de configuração com tipo inválido rejeitada explicitamente; cursores de mensagens validados antes de HTTP; mapeamentos de entrada de Contacts e Conversations copiados e revalidados ao serializar.
+- Auditoria de validações: URL de configuração com tipo inválido rejeitada explicitamente; cursores de mensagens validados antes de HTTP; mapeamentos de entrada de Contacts e Conversations copiados e revalidados ao serializar; payloads JSON genéricos inválidos bloqueados antes da requisição.
 - `ConversationCreate` revalida `message.content` na serialização, mesmo após mutação interna; `toggle_priority()` exige `priority` explicitamente para evitar limpeza involuntária.
 - Documentação geral revisada para diferenciar validação simulada de homologação real e reduzir acoplamento a consumidores específicos.
 
