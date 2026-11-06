@@ -251,3 +251,64 @@ def test_validacao_id_anterior_ao_envio():
     with mock_client(seen) as cw, pytest.raises(ValueError):
         cw.messages.send_text(0, 2, TextMessage("ok"))
     assert not seen
+
+
+@pytest.mark.parametrize("status", [301, 302, 307, 308])
+def test_redirect_midia_rejeitado_antes_de_post(monkeypatch, status):
+    """URLs Active Storage /blobs/redirect nao podem gerar escrita ambigua."""
+    from chatwoot_client import ErroRedirecionamentoAnexoChatwoot
+    enviados, downloads = [], []
+    httpx_client = httpx.Client
+
+    def fabricar_download(*args, **kwargs):
+        assert kwargs["follow_redirects"] is False
+        assert kwargs["trust_env"] is False
+        return httpx_client(transport=httpx.MockTransport(
+            lambda request: (downloads.append(request) or httpx.Response(
+                status, headers={"location": "https://outro.example.org/arquivo.pdf"}
+            ))
+        ))
+
+    monkeypatch.setattr(resolver, "httpx", SimpleNamespace(
+        Client=fabricar_download, HTTPError=httpx.HTTPError,
+    ))
+    monkeypatch.setattr(resolver.socket, "getaddrinfo", lambda *a, **k: [
+        (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443))
+    ])
+    with mock_client(enviados) as cw, pytest.raises(
+        ErroRedirecionamentoAnexoChatwoot
+    ):
+        cw.messages.send_media(
+            1, 2, MediaMessage((Attachment.from_url(
+                "https://files.example.org/rails/active_storage/blobs/redirect/teste"
+            , mime_type="application/pdf", filename="teste.pdf"),)),
+            allowed_hosts={"files.example.org"},
+        )
+    assert len(downloads) == 1
+    assert "Authorization" not in downloads[0].headers
+    assert not enviados  # nenhum POST
+
+
+def test_erro_download_midia_antes_de_post(monkeypatch):
+    enviados = []
+    httpx_client = httpx.Client
+
+    def fabricar_download(*args, **kwargs):
+        def timeout(req):
+            raise httpx.ReadTimeout("sintetico", request=req)
+        return httpx_client(transport=httpx.MockTransport(timeout))
+
+    monkeypatch.setattr(resolver, "httpx", SimpleNamespace(
+        Client=fabricar_download, HTTPError=httpx.HTTPError,
+    ))
+    monkeypatch.setattr(resolver.socket, "getaddrinfo", lambda *a, **k: [
+        (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443))
+    ])
+    with mock_client(enviados) as cw, pytest.raises(ErroAnexoChatwoot):
+        cw.messages.send_media(
+            1, 2, MediaMessage((Attachment.from_url(
+                "https://files.example.org/a.pdf", mime_type="application/pdf",
+                filename="a.pdf",
+            ),)), allowed_hosts={"files.example.org"},
+        )
+    assert not enviados
