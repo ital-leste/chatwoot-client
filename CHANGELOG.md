@@ -1,5 +1,11 @@
 # Changelog
 
+## G3 — homologacao 2026-11-06
+
+- Downloads de anexos HTTPS seguem em `follow_redirects=False`. Respostas HTTP 3xx agora levantam `ErroRedirecionamentoAnexoChatwoot` (subclasse de `ErroAnexoChatwoot`) antes do POST. O consumidor pode distinguir `media_redirect_rejected` de `outcome_unknown` de escrita.
+- Testes de redirects 301/302/307/308, falha de rede na obtencao e prova de nenhum POST. A allowlist e os limites de tamanho continuam obrigatorios no resolvedor.
+
+
 ## Unreleased — homolog
 
 - README principal reescrito para apresentar o cliente Python de forma neutra, com uso inicial, entrada tipada quando necessária e payload da API como padrão para operações não modeladas.
