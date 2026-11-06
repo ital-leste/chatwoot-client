@@ -20,6 +20,10 @@ class ErroAnexoChatwoot(ValueError):
     """Arquivo ou URL de anexo inválido/inacessível."""
 
 
+class ErroRedirecionamentoAnexoChatwoot(ErroAnexoChatwoot):
+    """Redirecionamento de mídia rejeitado antes de qualquer POST."""
+
+
 def _validar_url_publica(url: str, allowed_hosts: frozenset[str] | None) -> None:
     parsed = urlsplit(url)
     host = parsed.hostname
@@ -62,6 +66,12 @@ def _resolver_url(url: str, dest: BinaryIO, limit: int, timeout: float) -> None:
         # Cliente separado: token do Chatwoot nunca é enviado ao host da mídia.
         with httpx.Client(timeout=timeout, follow_redirects=False, trust_env=False) as web:
             with web.stream("GET", url) as response:
+                if 300 <= response.status_code < 400:
+                    # Política explícita: URLs finais são obrigatórias. Seguir
+                    # Location automaticamente pode ultrapassar a allowlist.
+                    raise ErroRedirecionamentoAnexoChatwoot(
+                        "Redirect de anexo rejeitado; utilizar URL HTTPS final autorizada."
+                    )
                 if response.status_code != 200:
                     raise ErroAnexoChatwoot("Servidor de mídia não retornou HTTP 200.")
                 size = response.headers.get("content-length")
