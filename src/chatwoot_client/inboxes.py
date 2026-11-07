@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
+
+from .input_validation import validar_ids_usuarios
 
 from typing import TYPE_CHECKING, Any
 
@@ -89,15 +91,17 @@ class InboxesResource:
         consulta = parametros
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def set_agent_bot(self, account_id: int, inbox_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
-        """POST /api/v1/accounts/{account_id}/inboxes/{id}/set_agent_bot; retorna JSON ou None."""
+
+    def set_agent_bot(
+        self, account_id: int, inbox_id: int, *, agent_bot: int | None,
+    ) -> Any:
+        """Define ou desvincula AgentBot: None explícito gera JSON null."""
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(inbox_id, "inbox_id")
-        if not isinstance(data, Mapping):
-            raise ValueError("data deve ser objeto JSON.")
+        if agent_bot is not None:
+            self._client._validar_id(agent_bot, "agent_bot")
         caminho = f"api/v1/accounts/{account_id}/inboxes/{inbox_id}/set_agent_bot"
-        consulta = parametros
-        return self._client._solicitar_json("POST", caminho, dados=data, parametros=consulta)
+        return self._client._post(caminho, dados={"agent_bot": agent_bot})
 
     def list_members(self, account_id: int, inbox_id: int, *, parametros: Mapping[str, Any] | None = None) -> Any:
         """GET /api/v1/accounts/{account_id}/inbox_members/{inbox_id}; retorna JSON ou None."""
@@ -107,29 +111,42 @@ class InboxesResource:
         consulta = parametros
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def add_member(self, account_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
-        """POST /api/v1/accounts/{account_id}/inbox_members; retorna JSON ou None."""
-        self._client._validar_id(account_id, "account_id")
-        if not isinstance(data, Mapping):
-            raise ValueError("data deve ser objeto JSON.")
-        caminho = f"api/v1/accounts/{account_id}/inbox_members"
-        consulta = parametros
-        return self._client._solicitar_json("POST", caminho, dados=data, parametros=consulta)
 
-    def update_members(self, account_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
-        """PATCH /api/v1/accounts/{account_id}/inbox_members; retorna JSON ou None."""
+    def add_member(
+        self, account_id: int, *, inbox_id: int, user_ids: Sequence[int],
+    ) -> Any:
+        """POST de membros, sem depender de payloads não tipados."""
         self._client._validar_id(account_id, "account_id")
-        if not isinstance(data, Mapping):
-            raise ValueError("data deve ser objeto JSON.")
+        self._client._validar_id(inbox_id, "inbox_id")
+        ids = validar_ids_usuarios(user_ids)
         caminho = f"api/v1/accounts/{account_id}/inbox_members"
-        consulta = parametros
-        return self._client._solicitar_json("PATCH", caminho, dados=data, parametros=consulta)
+        return self._client._solicitar_json(
+            "POST", caminho, dados={"inbox_id": inbox_id, "user_ids": ids},
+        )
 
-    def remove_members(self, account_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
-        """DELETE /api/v1/accounts/{account_id}/inbox_members; retorna JSON ou None."""
+
+    def update_members(
+        self, account_id: int, *, inbox_id: int, user_ids: Sequence[int],
+    ) -> Any:
+        """PATCH de membros, sem depender de payloads não tipados."""
         self._client._validar_id(account_id, "account_id")
-        if not isinstance(data, Mapping):
-            raise ValueError("data deve ser objeto JSON.")
+        self._client._validar_id(inbox_id, "inbox_id")
+        ids = validar_ids_usuarios(user_ids)
         caminho = f"api/v1/accounts/{account_id}/inbox_members"
-        consulta = parametros
-        return self._client._solicitar_json("DELETE", caminho, dados=data, parametros=consulta)
+        return self._client._solicitar_json(
+            "PATCH", caminho, dados={"inbox_id": inbox_id, "user_ids": ids},
+        )
+
+
+    def remove_members(
+        self, account_id: int, *, inbox_id: int, user_ids: Sequence[int],
+    ) -> Any:
+        """DELETE de membros, sem depender de payloads não tipados."""
+        self._client._validar_id(account_id, "account_id")
+        self._client._validar_id(inbox_id, "inbox_id")
+        ids = validar_ids_usuarios(user_ids)
+        caminho = f"api/v1/accounts/{account_id}/inbox_members"
+        return self._client._solicitar_json(
+            "DELETE", caminho, dados={"inbox_id": inbox_id, "user_ids": ids},
+        )
+

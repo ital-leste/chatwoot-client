@@ -97,16 +97,24 @@ class MessagesResource:
             response, operacao="enviar mídia", caminho=caminho,
         )
 
-    def update_status(self, account_id: int, conversation_id: int, message_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
-        """PATCH /api/v1/accounts/{account_id}/conversations/{conversation_id}/messages/{message_id}; retorna JSON ou None."""
+
+    def update_status(
+        self, account_id: int, conversation_id: int, message_id: int,
+        *, status: str, external_error: str | None = None,
+    ) -> Any:
+        """Atualiza status de mensagem sem converter os valores da API."""
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(conversation_id, "conversation_id")
         self._client._validar_id(message_id, "message_id")
-        if not isinstance(data, Mapping):
-            raise ValueError("data deve ser objeto JSON.")
+        if not isinstance(status, str) or not status.strip():
+            raise ValueError("status deve ser texto não vazio.")
+        dados = {"status": status}
+        if external_error is not None:
+            if not isinstance(external_error, str):
+                raise ValueError("external_error deve ser string.")
+            dados["external_error"] = external_error
         caminho = f"api/v1/accounts/{account_id}/conversations/{conversation_id}/messages/{message_id}"
-        consulta = parametros
-        return self._client._solicitar_json("PATCH", caminho, dados=data, parametros=consulta)
+        return self._client._patch(caminho, dados=dados)
 
     def delete(self, account_id: int, conversation_id: int, message_id: int, *, parametros: Mapping[str, Any] | None = None) -> Any:
         """DELETE /api/v1/accounts/{account_id}/conversations/{conversation_id}/messages/{message_id}; retorna JSON ou None."""

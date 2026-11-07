@@ -311,13 +311,7 @@ CASOS = [
   [
     "contact_labels",
     "replace",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
+    [1, 1, ["exemplo"]],
     {},
     "POST",
     "/api/v1/accounts/1/contacts/1/labels",
@@ -346,14 +340,8 @@ CASOS = [
   [
     "contacts",
     "add_inbox",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1, 1],
+    {"inbox_id": 2, "source_id": "origem"},
     "POST",
     "/api/v1/accounts/1/contacts/1/contact_inboxes",
     True
@@ -373,13 +361,8 @@ CASOS = [
   [
     "contacts",
     "merge",
-    [
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1],
+    {"base_contact_id": 1, "mergee_contact_id": 2},
     "POST",
     "/api/v1/accounts/1/actions/contact_merge",
     True
@@ -711,14 +694,8 @@ CASOS = [
   [
     "inboxes",
     "set_agent_bot",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1, 1],
+    {"agent_bot": 2},
     "POST",
     "/api/v1/accounts/1/inboxes/1/set_agent_bot",
     True
@@ -738,13 +715,8 @@ CASOS = [
   [
     "inboxes",
     "add_member",
-    [
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1],
+    {"inbox_id": 1, "user_ids": [2]},
     "POST",
     "/api/v1/accounts/1/inbox_members",
     True
@@ -752,13 +724,8 @@ CASOS = [
   [
     "inboxes",
     "update_members",
-    [
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1],
+    {"inbox_id": 1, "user_ids": [2]},
     "PATCH",
     "/api/v1/accounts/1/inbox_members",
     True
@@ -766,13 +733,8 @@ CASOS = [
   [
     "inboxes",
     "remove_members",
-    [
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1],
+    {"inbox_id": 1, "user_ids": [2]},
     "DELETE",
     "/api/v1/accounts/1/inbox_members",
     True
@@ -819,15 +781,8 @@ CASOS = [
   [
     "messages",
     "update_status",
-    [
-      1,
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1, 1, 1],
+    {"status": "sent"},
     "PATCH",
     "/api/v1/accounts/1/conversations/1/messages/1",
     True
@@ -989,13 +944,7 @@ CASOS = [
   [
     "teams",
     "add_members",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
+    [1, 1, [2]],
     {},
     "POST",
     "/api/v1/accounts/1/teams/1/team_members",
@@ -1004,13 +953,7 @@ CASOS = [
   [
     "teams",
     "update_members",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
+    [1, 1, [2]],
     {},
     "PATCH",
     "/api/v1/accounts/1/teams/1/team_members",
@@ -1019,13 +962,7 @@ CASOS = [
   [
     "teams",
     "remove_members",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
+    [1, 1, [2]],
     {},
     "DELETE",
     "/api/v1/accounts/1/teams/1/team_members",

@@ -142,15 +142,22 @@ class ContactsResource:
             resposta, operacao="filtrar contatos", caminho=caminho
         )
 
-    def add_inbox(self, account_id: int, contact_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
-        """POST /api/v1/accounts/{account_id}/contacts/{id}/contact_inboxes; retorna JSON ou None."""
+
+    def add_inbox(
+        self, account_id: int, contact_id: int, *, inbox_id: int,
+        source_id: str | None = None,
+    ) -> Any:
+        """Associa contato à inbox com identificador explícito."""
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(contact_id, "contact_id")
-        if not isinstance(data, Mapping):
-            raise ValueError("data deve ser objeto JSON.")
+        self._client._validar_id(inbox_id, "inbox_id")
+        dados: dict[str, Any] = {"inbox_id": inbox_id}
+        if source_id is not None:
+            if not isinstance(source_id, str) or not source_id.strip():
+                raise ValueError("source_id deve ser string não vazia.")
+            dados["source_id"] = source_id
         caminho = f"api/v1/accounts/{account_id}/contacts/{contact_id}/contact_inboxes"
-        consulta = parametros
-        return self._client._solicitar_json("POST", caminho, dados=data, parametros=consulta)
+        return self._client._post(caminho, dados=dados)
 
     def list_contactable_inboxes(self, account_id: int, contact_id: int, *, parametros: Mapping[str, Any] | None = None) -> Any:
         """GET /api/v1/accounts/{account_id}/contacts/{id}/contactable_inboxes; retorna JSON ou None."""
@@ -160,11 +167,21 @@ class ContactsResource:
         consulta = parametros
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def merge(self, account_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
-        """POST /api/v1/accounts/{account_id}/actions/contact_merge; retorna JSON ou None."""
+
+    def merge(
+        self, account_id: int, *, base_contact_id: int, mergee_contact_id: int,
+    ) -> Any:
+        """Mescla contato de origem no principal: operação potencialmente destrutiva."""
         self._client._validar_id(account_id, "account_id")
-        if not isinstance(data, Mapping):
-            raise ValueError("data deve ser objeto JSON.")
+        self._client._validar_id(base_contact_id, "base_contact_id")
+        self._client._validar_id(mergee_contact_id, "mergee_contact_id")
+        if base_contact_id == mergee_contact_id:
+            raise ValueError("Os contatos devem ser diferentes.")
         caminho = f"api/v1/accounts/{account_id}/actions/contact_merge"
-        consulta = parametros
-        return self._client._solicitar_json("POST", caminho, dados=data, parametros=consulta)
+        return self._client._post(
+            caminho, dados={
+                "base_contact_id": base_contact_id,
+                "mergee_contact_id": mergee_contact_id,
+            },
+        )
+
