@@ -8,4 +8,6 @@ __all__ = [
     "CWClient", "ErroAPIChatwoot", "ErroConfiguracaoChatwoot", "ErroAnexoChatwoot", "ErroRedirecionamentoAnexoChatwoot",
     "Attachment", "TextMessage", "MediaMessage", "LabelDefinition", "Contact", "ConversationCreate", "FilterCondition",
     "MimeType", "MessageType", "MessageContentType", "ConversationStatus", "ConversationPriority",
+    "AccountSettingsInput", "AgentBotInput", "AutomationRuleInput", "InboxSettingsInput", "CustomAttributeInput", "CustomFilterInput", "HelpCenterPortalInput", "HelpCenterCategoryInput", "HelpCenterArticleInput", "IntegrationHookInput",
 ]
+from .models.application import AccountSettingsInput, AgentBotInput, AutomationRuleInput, InboxSettingsInput, CustomAttributeInput, CustomFilterInput, HelpCenterPortalInput, HelpCenterCategoryInput, HelpCenterArticleInput, IntegrationHookInput

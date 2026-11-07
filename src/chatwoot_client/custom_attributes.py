@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from .input_validation import validar_opcao
 
+from .models.application import CustomAttributeInput
+
 if TYPE_CHECKING:
     from .client import CWClient
 
@@ -29,14 +31,14 @@ class CustomAttributesResource:
         validar_opcao(consulta["attribute_model"], ("0", "1"), "attribute_model")
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def create(self, account_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
-        """POST /api/v1/accounts/{account_id}/custom_attribute_definitions; retorna JSON ou None."""
+    def create(self, account_id, attribute: CustomAttributeInput) -> Any:
+        """POST com contrato de entrada CustomAttributeInput; saída JSON nativa."""
         self._client._validar_id(account_id, "account_id")
-        if not isinstance(data, Mapping):
-            raise ValueError("data deve ser objeto JSON.")
-        caminho = f"api/v1/accounts/{account_id}/custom_attribute_definitions"
-        consulta = parametros
-        return self._client._solicitar_json("POST", caminho, dados=data, parametros=consulta)
+        if not isinstance(attribute, CustomAttributeInput):
+            raise TypeError("attribute deve ser CustomAttributeInput.")
+        dados = attribute.to_payload(required=["attribute_key"])
+        consulta = None
+        return self._client._solicitar_json("POST", f"api/v1/accounts/{account_id}/custom_attribute_definitions", dados=dados, parametros=consulta)
 
     def get(self, account_id: int, attribute_id: int, *, parametros: Mapping[str, Any] | None = None) -> Any:
         """GET /api/v1/accounts/{account_id}/custom_attribute_definitions/{id}; retorna JSON ou None."""
@@ -46,15 +48,15 @@ class CustomAttributesResource:
         consulta = parametros
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def update(self, account_id: int, attribute_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
-        """PATCH /api/v1/accounts/{account_id}/custom_attribute_definitions/{id}; retorna JSON ou None."""
+    def update(self, account_id, attribute_id, attribute: CustomAttributeInput) -> Any:
+        """PATCH com contrato de entrada CustomAttributeInput; saída JSON nativa."""
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(attribute_id, "attribute_id")
-        if not isinstance(data, Mapping):
-            raise ValueError("data deve ser objeto JSON.")
-        caminho = f"api/v1/accounts/{account_id}/custom_attribute_definitions/{attribute_id}"
-        consulta = parametros
-        return self._client._solicitar_json("PATCH", caminho, dados=data, parametros=consulta)
+        if not isinstance(attribute, CustomAttributeInput):
+            raise TypeError("attribute deve ser CustomAttributeInput.")
+        dados = attribute.to_payload()
+        consulta = None
+        return self._client._solicitar_json("PATCH", f"api/v1/accounts/{account_id}/custom_attribute_definitions/{attribute_id}", dados=dados, parametros=consulta)
 
     def delete(self, account_id: int, attribute_id: int, *, parametros: Mapping[str, Any] | None = None) -> Any:
         """DELETE /api/v1/accounts/{account_id}/custom_attribute_definitions/{id}; retorna JSON ou None."""

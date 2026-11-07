@@ -1,18 +1,13 @@
 """Contratos HTTP de 108 operações novas (OpenAPI Chatwoot 4.19.0)."""
 import httpx
 import pytest
-from chatwoot_client import CWClient, Contact, ConversationCreate, ConversationPriority, FilterCondition
+from chatwoot_client import CWClient, Contact, ConversationCreate, ConversationPriority, FilterCondition, AccountSettingsInput, AgentBotInput, AutomationRuleInput, InboxSettingsInput, CustomAttributeInput, CustomFilterInput, HelpCenterPortalInput, HelpCenterCategoryInput, HelpCenterArticleInput, IntegrationHookInput
 
 CASOS = [
   [
     "account",
     "update",
-    [
-      1,
-      {
-        "name": "teste"
-      }
-    ],
+    [1, AccountSettingsInput(name="teste")],
     {},
     "PATCH",
     "/api/v1/accounts/1",
@@ -43,12 +38,7 @@ CASOS = [
   [
     "account_agentbots",
     "create",
-    [
-      1,
-      {
-        "name": "teste"
-      }
-    ],
+    [1, AgentBotInput(name="bot", outgoing_url="https://example.org/hook")],
     {},
     "POST",
     "/api/v1/accounts/1/agent_bots",
@@ -69,13 +59,7 @@ CASOS = [
   [
     "account_agentbots",
     "update",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
+    [1, 1, AgentBotInput(description="alterado")],
     {},
     "PATCH",
     "/api/v1/accounts/1/agent_bots/1",
@@ -171,12 +155,7 @@ CASOS = [
   [
     "custom_attributes",
     "create",
-    [
-      1,
-      {
-        "name": "teste"
-      }
-    ],
+    [1, CustomAttributeInput(attribute_key="placa", attribute_display_name="Placa", attribute_display_type=0, attribute_model=0)],
     {},
     "POST",
     "/api/v1/accounts/1/custom_attribute_definitions",
@@ -197,13 +176,7 @@ CASOS = [
   [
     "custom_attributes",
     "update",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
+    [1, 1, CustomAttributeInput(attribute_display_name="Placa do veículo")],
     {},
     "PATCH",
     "/api/v1/accounts/1/custom_attribute_definitions/1",
@@ -366,12 +339,7 @@ CASOS = [
   [
     "automation_rules",
     "create",
-    [
-      1,
-      {
-        "name": "teste"
-      }
-    ],
+    [1, AutomationRuleInput(name="regra", event_name="message_created", actions=[{"action_name":"add_label","action_params":["teste"]}], conditions=[])],
     {},
     "POST",
     "/api/v1/accounts/1/automation_rules",
@@ -392,13 +360,7 @@ CASOS = [
   [
     "automation_rules",
     "update",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
+    [1, 1, AutomationRuleInput(active=False)],
     {},
     "PATCH",
     "/api/v1/accounts/1/automation_rules/1",
@@ -419,12 +381,7 @@ CASOS = [
   [
     "help_center",
     "create",
-    [
-      1,
-      {
-        "name": "teste"
-      }
-    ],
+    [1, HelpCenterPortalInput(name="Central", slug="central")],
     {},
     "POST",
     "/api/v1/accounts/1/portals",
@@ -456,13 +413,7 @@ CASOS = [
   [
     "help_center",
     "update",
-    [
-      1,
-      "portal-teste",
-      {
-        "name": "teste"
-      }
-    ],
+    [1, "portal-teste", HelpCenterPortalInput(page_title="Atualizado")],
     {},
     "PATCH",
     "/api/v1/accounts/1/portals/portal-teste",
@@ -471,13 +422,7 @@ CASOS = [
   [
     "help_center",
     "create_category",
-    [
-      1,
-      "portal-teste",
-      {
-        "name": "teste"
-      }
-    ],
+    [1, "portal-teste", HelpCenterCategoryInput(name="GNV")],
     {},
     "POST",
     "/api/v1/accounts/1/portals/portal-teste/categories",
@@ -486,13 +431,7 @@ CASOS = [
   [
     "help_center",
     "create_article",
-    [
-      1,
-      "portal-teste",
-      {
-        "name": "teste"
-      }
-    ],
+    [1, "portal-teste", HelpCenterArticleInput(title="Guia", content="Conteúdo", category_id=1)],
     {},
     "POST",
     "/api/v1/accounts/1/portals/portal-teste/articles",
@@ -626,12 +565,7 @@ CASOS = [
   [
     "inboxes",
     "create",
-    [
-      1,
-      {
-        "name": "teste"
-      }
-    ],
+    [1, InboxSettingsInput(name="caixa", channel={"type":"Channel::Api","webhook_url":"https://example.org/hook"})],
     {},
     "POST",
     "/api/v1/accounts/1/inboxes",
@@ -640,13 +574,7 @@ CASOS = [
   [
     "inboxes",
     "update",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
+    [1, 1, InboxSettingsInput(name="caixa-atualizada")],
     {},
     "PATCH",
     "/api/v1/accounts/1/inboxes/1",
@@ -799,12 +727,7 @@ CASOS = [
   [
     "integrations",
     "create_hook",
-    [
-      1,
-      {
-        "name": "teste"
-      }
-    ],
+    [1, IntegrationHookInput(app_id=1, inbox_id=2, settings={"canal":"api"})],
     {},
     "POST",
     "/api/v1/accounts/1/integrations/hooks",
@@ -813,13 +736,7 @@ CASOS = [
   [
     "integrations",
     "update_hook",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
+    [1, 1, IntegrationHookInput(status=1)],
     {},
     "PATCH",
     "/api/v1/accounts/1/integrations/hooks/1",
@@ -967,12 +884,7 @@ CASOS = [
   [
     "custom_filters",
     "create",
-    [
-      1,
-      {
-        "name": "teste"
-      }
-    ],
+    [1, CustomFilterInput(name="pendentes", type="conversation", query={"payload":[]})],
     {},
     "POST",
     "/api/v1/accounts/1/custom_filters",
@@ -993,13 +905,7 @@ CASOS = [
   [
     "custom_filters",
     "update",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
+    [1, 1, CustomFilterInput(name="revisado")],
     {},
     "PATCH",
     "/api/v1/accounts/1/custom_filters/1",
