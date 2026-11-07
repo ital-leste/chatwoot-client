@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Literal
 
-from .input_validation import validar_opcao
+from .input_validation import validar_opcao, validar_lista_ids
 
 if TYPE_CHECKING:
     from .client import CWClient
@@ -31,6 +31,12 @@ class ReportsResource:
         consulta = {k: v for k, v in consulta.items() if v is not None}
         if parametros:
             consulta.update(parametros)
+        for nome in ("page", "inbox_id", "user_id"):
+            if nome in consulta:
+                self._client._validar_id(consulta[nome], nome)
+        for nome in ("since", "until", "name"):
+            if nome in consulta and not isinstance(consulta[nome], str):
+                raise ValueError(f"{nome} deve ser string.")
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
     def list_conversation_statistics(self, account_id: int, *, metric: Literal["conversations_count", "incoming_messages_count", "outgoing_messages_count", "avg_first_response_time", "avg_resolution_time", "resolutions_count"], type_: Literal["account", "agent", "inbox", "label", "team"], id: str | None = None, since: str | None = None, until: str | None = None, parametros: Mapping[str, Any] | None = None) -> Any:
@@ -119,6 +125,8 @@ class ReportsResource:
         consulta = {k: v for k, v in consulta.items() if v is not None}
         if parametros:
             consulta.update(parametros)
+        if "business_hours" in consulta and type(consulta["business_hours"]) is not bool:
+            raise ValueError("business_hours deve ser bool.")
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
     def agent_summary(self, account_id: int, *, since: str | None = None, until: str | None = None, business_hours: bool | None = None, parametros: Mapping[str, Any] | None = None) -> Any:
@@ -133,6 +141,8 @@ class ReportsResource:
         consulta = {k: v for k, v in consulta.items() if v is not None}
         if parametros:
             consulta.update(parametros)
+        if "business_hours" in consulta and type(consulta["business_hours"]) is not bool:
+            raise ValueError("business_hours deve ser bool.")
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
     def team_summary(self, account_id: int, *, since: str | None = None, until: str | None = None, business_hours: bool | None = None, parametros: Mapping[str, Any] | None = None) -> Any:
@@ -147,6 +157,8 @@ class ReportsResource:
         consulta = {k: v for k, v in consulta.items() if v is not None}
         if parametros:
             consulta.update(parametros)
+        if "business_hours" in consulta and type(consulta["business_hours"]) is not bool:
+            raise ValueError("business_hours deve ser bool.")
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
     def first_response_time_distribution(self, account_id: int, *, since: str | None = None, until: str | None = None, parametros: Mapping[str, Any] | None = None) -> Any:
@@ -162,7 +174,7 @@ class ReportsResource:
             consulta.update(parametros)
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def inbox_label_matrix(self, account_id: int, *, since: str | None = None, until: str | None = None, inbox_ids: list[Any] | None = None, label_ids: list[Any] | None = None, parametros: Mapping[str, Any] | None = None) -> Any:
+    def inbox_label_matrix(self, account_id: int, *, since: str | None = None, until: str | None = None, inbox_ids: list[int] | None = None, label_ids: list[int] | None = None, parametros: Mapping[str, Any] | None = None) -> Any:
         """GET /api/v2/accounts/{account_id}/reports/inbox_label_matrix; retorna JSON ou None."""
         self._client._validar_id(account_id, "account_id")
         caminho = f"api/v2/accounts/{account_id}/reports/inbox_label_matrix"
@@ -175,6 +187,9 @@ class ReportsResource:
         consulta = {k: v for k, v in consulta.items() if v is not None}
         if parametros:
             consulta.update(parametros)
+        for nome in ("inbox_ids", "label_ids"):
+            if nome in consulta:
+                consulta[nome] = validar_lista_ids(consulta[nome], nome)
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
     def outgoing_messages_count(self, account_id: int, *, group_by: Literal["agent", "team", "inbox", "label"], since: str | None = None, until: str | None = None, parametros: Mapping[str, Any] | None = None) -> Any:

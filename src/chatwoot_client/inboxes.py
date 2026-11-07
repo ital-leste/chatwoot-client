@@ -86,6 +86,8 @@ class InboxesResource:
         consulta = {k: v for k, v in consulta.items() if v is not None}
         if parametros:
             consulta.update(parametros)
+        if "name" in consulta and (not isinstance(consulta["name"], str) or not consulta["name"].strip()):
+            raise ValueError("name deve ser texto não vazio.")
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
     def get_agent_bot(self, account_id: int, inbox_id: int, *, parametros: Mapping[str, Any] | None = None) -> Any:

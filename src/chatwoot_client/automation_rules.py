@@ -26,6 +26,8 @@ class AutomationRulesResource:
         consulta = {k: v for k, v in consulta.items() if v is not None}
         if parametros:
             consulta.update(parametros)
+        if "page" in consulta:
+            self._client._validar_id(consulta["page"], "page")
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
     def create(self, account_id, rule: AutomationRuleInput) -> Any:

@@ -7,7 +7,9 @@ from collections.abc import Mapping, Sequence
 from .models import Contact, FilterCondition
 from .models.filters import _serializar_filtros
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
+
+from .input_validation import validar_opcao
 
 if TYPE_CHECKING:
     from .client import CWClient
@@ -29,7 +31,7 @@ class ContactsResource:
             response, operacao="consultar o contato", caminho=path
         )
 
-    def list(self, account_id: int, *, sort: str | None = None, page: int | None = None, parametros: Mapping[str, Any] | None = None) -> Any:
+    def list(self, account_id: int, *, sort: Literal["name", "email", "phone_number", "last_activity_at", "-name", "-email", "-phone_number", "-last_activity_at"] | None = None, page: int | None = None, parametros: Mapping[str, Any] | None = None) -> Any:
         """GET /api/v1/accounts/{account_id}/contacts; retorna JSON ou None."""
         self._client._validar_id(account_id, "account_id")
         caminho = f"api/v1/accounts/{account_id}/contacts"
@@ -40,6 +42,10 @@ class ContactsResource:
         consulta = {k: v for k, v in consulta.items() if v is not None}
         if parametros:
             consulta.update(parametros)
+        if "sort" in consulta:
+            validar_opcao(consulta["sort"], ("name", "email", "phone_number", "last_activity_at", "-name", "-email", "-phone_number", "-last_activity_at"), "sort")
+        if "page" in consulta:
+            self._client._validar_id(consulta["page"], "page")
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
     def create(
@@ -111,7 +117,7 @@ class ContactsResource:
         consulta = parametros
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def search(self, account_id: int, *, q: str | None = None, sort: str | None = None, page: int | None = None, parametros: Mapping[str, Any] | None = None) -> Any:
+    def search(self, account_id: int, *, q: str | None = None, sort: Literal["name", "email", "phone_number", "last_activity_at", "-name", "-email", "-phone_number", "-last_activity_at"] | None = None, page: int | None = None, parametros: Mapping[str, Any] | None = None) -> Any:
         """GET /api/v1/accounts/{account_id}/contacts/search; retorna JSON ou None."""
         self._client._validar_id(account_id, "account_id")
         caminho = f"api/v1/accounts/{account_id}/contacts/search"
@@ -123,6 +129,10 @@ class ContactsResource:
         consulta = {k: v for k, v in consulta.items() if v is not None}
         if parametros:
             consulta.update(parametros)
+        if "sort" in consulta:
+            validar_opcao(consulta["sort"], ("name", "email", "phone_number", "last_activity_at", "-name", "-email", "-phone_number", "-last_activity_at"), "sort")
+        if "page" in consulta:
+            self._client._validar_id(consulta["page"], "page")
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
     def filter(

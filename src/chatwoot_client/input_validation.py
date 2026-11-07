@@ -31,3 +31,19 @@ def validar_chaves_json(valor: object) -> None:
     elif isinstance(valor, (list, tuple)):
         for filho in valor:
             validar_chaves_json(filho)
+
+
+def validar_lista_textos(valor: object, nome: str) -> list[str]:
+    if not isinstance(valor, (list, tuple)) or any(
+        not isinstance(item, str) or not item.strip() for item in valor
+    ):
+        raise ValueError(f"{nome} deve conter somente textos não vazios.")
+    return list(valor)
+
+
+def validar_lista_ids(valor: object, nome: str) -> list[int]:
+    if not isinstance(valor, (list, tuple)) or any(
+        type(item) is not int or item <= 0 for item in valor
+    ):
+        raise ValueError(f"{nome} deve conter somente IDs inteiros positivos.")
+    return list(valor)

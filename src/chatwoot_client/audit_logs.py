@@ -3,6 +3,7 @@
 from __future__ import annotations
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Literal
+from .input_validation import validar_lista_textos
 
 from .input_validation import validar_opcao
 
@@ -16,7 +17,7 @@ class AuditLogsResource:
     def __init__(self, client: CWClient) -> None:
         self._client = client
 
-    def list(self, account_id: int, *, page: int | None = None, q: str | None = None, types: list[Any] | None = None, since: int | None = None, until: int | None = None, sort: Literal["asc", "desc"] | None = None, parametros: Mapping[str, Any] | None = None) -> Any:
+    def list(self, account_id: int, *, page: int | None = None, q: str | None = None, types: list[str] | None = None, since: int | None = None, until: int | None = None, sort: Literal["asc", "desc"] | None = None, parametros: Mapping[str, Any] | None = None) -> Any:
         """GET /api/v1/accounts/{account_id}/audit_logs; retorna JSON ou None."""
         self._client._validar_id(account_id, "account_id")
         caminho = f"api/v1/accounts/{account_id}/audit_logs"
@@ -33,4 +34,11 @@ class AuditLogsResource:
             consulta.update(parametros)
         if "sort" in consulta:
             validar_opcao(consulta["sort"], ("asc", "desc"), "sort")
+        if "page" in consulta:
+            self._client._validar_id(consulta["page"], "page")
+        if "types" in consulta:
+            consulta["types"] = validar_lista_textos(consulta["types"], "types")
+        for nome in ("since", "until"):
+            if nome in consulta and (type(consulta[nome]) is not int or consulta[nome] < 0):
+                raise ValueError(f"{nome} deve ser Unix timestamp não negativo.")
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
