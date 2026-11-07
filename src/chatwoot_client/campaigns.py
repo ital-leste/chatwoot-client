@@ -21,14 +21,16 @@ class CampaignsResource:
         consulta = parametros
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def create(self, account_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
-        """POST /api/v1/accounts/{account_id}/campaigns; retorna JSON ou None."""
+
+    def create(self, account_id: int, campaign: Mapping[str, Any]) -> Any:
+        """Envia o envelope obrigatório {"campaign": {...}} da Application API."""
         self._client._validar_id(account_id, "account_id")
-        if not isinstance(data, Mapping):
-            raise ValueError("data deve ser objeto JSON.")
-        caminho = f"api/v1/accounts/{account_id}/campaigns"
-        consulta = parametros
-        return self._client._solicitar_json("POST", caminho, dados=data, parametros=consulta)
+        if not isinstance(campaign, Mapping) or not campaign:
+            raise ValueError("campaign deve ser objeto JSON não vazio.")
+        return self._client._post(
+            f"api/v1/accounts/{account_id}/campaigns",
+            dados={"campaign": dict(campaign)},
+        )
 
     def get(self, account_id: int, campaign_id: int, *, parametros: Mapping[str, Any] | None = None) -> Any:
         """GET /api/v1/accounts/{account_id}/campaigns/{id}; retorna JSON ou None."""
@@ -38,15 +40,17 @@ class CampaignsResource:
         consulta = parametros
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def update(self, account_id: int, campaign_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
-        """PATCH /api/v1/accounts/{account_id}/campaigns/{id}; retorna JSON ou None."""
+
+    def update(self, account_id: int, campaign_id: int, campaign: Mapping[str, Any]) -> Any:
+        """PATCH preserva envelope campaign; conteúdo segue a API."""
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(campaign_id, "campaign_id")
-        if not isinstance(data, Mapping):
-            raise ValueError("data deve ser objeto JSON.")
-        caminho = f"api/v1/accounts/{account_id}/campaigns/{campaign_id}"
-        consulta = parametros
-        return self._client._solicitar_json("PATCH", caminho, dados=data, parametros=consulta)
+        if not isinstance(campaign, Mapping) or not campaign:
+            raise ValueError("campaign deve ser objeto JSON não vazio.")
+        return self._client._patch(
+            f"api/v1/accounts/{account_id}/campaigns/{campaign_id}",
+            dados={"campaign": dict(campaign)},
+        )
 
     def delete(self, account_id: int, campaign_id: int, *, parametros: Mapping[str, Any] | None = None) -> Any:
         """DELETE /api/v1/accounts/{account_id}/campaigns/{id}; retorna JSON ou None."""

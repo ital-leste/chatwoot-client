@@ -96,13 +96,8 @@ CASOS = [
   [
     "agents",
     "create",
-    [
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1],
+    {"name": "Teste", "email": "teste@example.com", "role": "agent"},
     "POST",
     "/api/v1/accounts/1/agents",
     True
@@ -110,14 +105,8 @@ CASOS = [
   [
     "agents",
     "update",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1, 1],
+    {"role": "agent"},
     "PATCH",
     "/api/v1/accounts/1/agents/1",
     True
@@ -1046,13 +1035,8 @@ CASOS = [
   [
     "webhooks",
     "create",
-    [
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1],
+    {"url": "https://hooks.example/webhook", "subscriptions": ["message_created"]},
     "POST",
     "/api/v1/accounts/1/webhooks",
     True
@@ -1060,14 +1044,8 @@ CASOS = [
   [
     "webhooks",
     "update",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1, 1],
+    {"name": "Teste webhook"},
     "PATCH",
     "/api/v1/accounts/1/webhooks/1",
     True
