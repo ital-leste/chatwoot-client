@@ -27,7 +27,7 @@ class AccountResource:
             response, operacao="consultar a conta", caminho=path
         )
 
-    def update(self, account_id, settings: AccountSettingsInput) -> Any:
+    def update(self, account_id: int, settings: AccountSettingsInput) -> Any:
         """PATCH com contrato de entrada AccountSettingsInput; saída JSON nativa."""
         self._client._validar_id(account_id, "account_id")
         if not isinstance(settings, AccountSettingsInput):

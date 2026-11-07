@@ -23,7 +23,7 @@ class IntegrationsResource:
         consulta = parametros
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def create_hook(self, account_id, hook: IntegrationHookInput) -> Any:
+    def create_hook(self, account_id: int, hook: IntegrationHookInput) -> Any:
         """POST com contrato de entrada IntegrationHookInput; saída JSON nativa."""
         self._client._validar_id(account_id, "account_id")
         if not isinstance(hook, IntegrationHookInput):
@@ -32,7 +32,7 @@ class IntegrationsResource:
         consulta = None
         return self._client._solicitar_json("POST", f"api/v1/accounts/{account_id}/integrations/hooks", dados=dados, parametros=consulta)
 
-    def update_hook(self, account_id, hook_id, hook: IntegrationHookInput) -> Any:
+    def update_hook(self, account_id: int, hook_id: int, hook: IntegrationHookInput) -> Any:
         """PATCH com contrato de entrada IntegrationHookInput; saída JSON nativa."""
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(hook_id, "hook_id")

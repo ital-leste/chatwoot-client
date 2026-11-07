@@ -56,7 +56,7 @@ class InboxesResource:
         consulta = parametros
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def create(self, account_id, inbox: InboxSettingsInput) -> Any:
+    def create(self, account_id: int, inbox: InboxSettingsInput) -> Any:
         """POST com contrato de entrada InboxSettingsInput; saída JSON nativa."""
         self._client._validar_id(account_id, "account_id")
         if not isinstance(inbox, InboxSettingsInput):
@@ -65,7 +65,7 @@ class InboxesResource:
         consulta = None
         return self._client._solicitar_json("POST", f"api/v1/accounts/{account_id}/inboxes", dados=dados, parametros=consulta)
 
-    def update(self, account_id, inbox_id, inbox: InboxSettingsInput) -> Any:
+    def update(self, account_id: int, inbox_id: int, inbox: InboxSettingsInput) -> Any:
         """PATCH com contrato de entrada InboxSettingsInput; saída JSON nativa."""
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(inbox_id, "inbox_id")

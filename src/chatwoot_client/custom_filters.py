@@ -32,7 +32,7 @@ class CustomFiltersResource:
             validar_opcao(consulta["filter_type"], ("conversation", "contact", "report"), "filter_type")
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def create(self, account_id, custom_filter: CustomFilterInput, *, filter_type: str | None = None) -> Any:
+    def create(self, account_id: int, custom_filter: CustomFilterInput, *, filter_type: Literal["conversation", "contact", "report"] | None = None) -> Any:
         """POST com contrato de entrada CustomFilterInput; saída JSON nativa."""
         self._client._validar_id(account_id, "account_id")
         if not isinstance(custom_filter, CustomFilterInput):
@@ -53,7 +53,7 @@ class CustomFiltersResource:
         consulta = parametros
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def update(self, account_id, custom_filter_id, custom_filter: CustomFilterInput) -> Any:
+    def update(self, account_id: int, custom_filter_id: int, custom_filter: CustomFilterInput) -> Any:
         """PATCH com contrato de entrada CustomFilterInput; saída JSON nativa."""
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(custom_filter_id, "custom_filter_id")

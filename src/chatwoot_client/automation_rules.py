@@ -30,7 +30,7 @@ class AutomationRulesResource:
             self._client._validar_id(consulta["page"], "page")
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def create(self, account_id, rule: AutomationRuleInput) -> Any:
+    def create(self, account_id: int, rule: AutomationRuleInput) -> Any:
         """POST com contrato de entrada AutomationRuleInput; saída JSON nativa."""
         self._client._validar_id(account_id, "account_id")
         if not isinstance(rule, AutomationRuleInput):
@@ -47,7 +47,7 @@ class AutomationRulesResource:
         consulta = parametros
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def update(self, account_id, rule_id, rule: AutomationRuleInput) -> Any:
+    def update(self, account_id: int, rule_id: int, rule: AutomationRuleInput) -> Any:
         """PATCH com contrato de entrada AutomationRuleInput; saída JSON nativa."""
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(rule_id, "rule_id")

@@ -31,7 +31,7 @@ class CustomAttributesResource:
         validar_opcao(consulta["attribute_model"], ("0", "1"), "attribute_model")
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def create(self, account_id, attribute: CustomAttributeInput) -> Any:
+    def create(self, account_id: int, attribute: CustomAttributeInput) -> Any:
         """POST com contrato de entrada CustomAttributeInput; saída JSON nativa."""
         self._client._validar_id(account_id, "account_id")
         if not isinstance(attribute, CustomAttributeInput):
@@ -48,7 +48,7 @@ class CustomAttributesResource:
         consulta = parametros
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def update(self, account_id, attribute_id, attribute: CustomAttributeInput) -> Any:
+    def update(self, account_id: int, attribute_id: int, attribute: CustomAttributeInput) -> Any:
         """PATCH com contrato de entrada CustomAttributeInput; saída JSON nativa."""
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(attribute_id, "attribute_id")

@@ -16,7 +16,7 @@ class HelpCenterResource:
     def __init__(self, client: CWClient) -> None:
         self._client = client
 
-    def create(self, account_id, portal: HelpCenterPortalInput) -> Any:
+    def create(self, account_id: int, portal: HelpCenterPortalInput) -> Any:
         """POST com contrato de entrada HelpCenterPortalInput; saída JSON nativa."""
         self._client._validar_id(account_id, "account_id")
         if not isinstance(portal, HelpCenterPortalInput):
@@ -40,7 +40,7 @@ class HelpCenterResource:
         consulta = parametros
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def update(self, account_id, portal_id: str | int, portal: HelpCenterPortalInput) -> Any:
+    def update(self, account_id: int, portal_id: str | int, portal: HelpCenterPortalInput) -> Any:
         """PATCH com contrato de entrada HelpCenterPortalInput; saída JSON nativa."""
         self._client._validar_id(account_id, "account_id")
         portal_id = self._client._segmento(portal_id, "portal_id")
@@ -50,7 +50,7 @@ class HelpCenterResource:
         consulta = None
         return self._client._solicitar_json("PATCH", f"api/v1/accounts/{account_id}/portals/{portal_id}", dados=dados, parametros=consulta)
 
-    def create_category(self, account_id, portal_id: str | int, category: HelpCenterCategoryInput) -> Any:
+    def create_category(self, account_id: int, portal_id: str | int, category: HelpCenterCategoryInput) -> Any:
         """POST com contrato de entrada HelpCenterCategoryInput; saída JSON nativa."""
         self._client._validar_id(account_id, "account_id")
         portal_id = self._client._segmento(portal_id, "portal_id")
@@ -60,7 +60,7 @@ class HelpCenterResource:
         consulta = None
         return self._client._solicitar_json("POST", f"api/v1/accounts/{account_id}/portals/{portal_id}/categories", dados=dados, parametros=consulta)
 
-    def create_article(self, account_id, portal_id: str | int, article: HelpCenterArticleInput) -> Any:
+    def create_article(self, account_id: int, portal_id: str | int, article: HelpCenterArticleInput) -> Any:
         """POST com contrato de entrada HelpCenterArticleInput; saída JSON nativa."""
         self._client._validar_id(account_id, "account_id")
         portal_id = self._client._segmento(portal_id, "portal_id")

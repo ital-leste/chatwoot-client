@@ -23,7 +23,7 @@ class AccountAgentBotsResource:
         consulta = parametros
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def create(self, account_id, bot: AgentBotInput) -> Any:
+    def create(self, account_id: int, bot: AgentBotInput) -> Any:
         """POST com contrato de entrada AgentBotInput; saída JSON nativa."""
         self._client._validar_id(account_id, "account_id")
         if not isinstance(bot, AgentBotInput):
@@ -40,7 +40,7 @@ class AccountAgentBotsResource:
         consulta = parametros
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def update(self, account_id, agent_bot_id, bot: AgentBotInput) -> Any:
+    def update(self, account_id: int, agent_bot_id: int, bot: AgentBotInput) -> Any:
         """PATCH com contrato de entrada AgentBotInput; saída JSON nativa."""
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(agent_bot_id, "agent_bot_id")
