@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import httpx
 import pytest
-from chatwoot_client import CWClient
+from chatwoot_client import CWClient, CustomFilterInput
 
 
 def mock_cw(chamadas):
@@ -56,8 +56,8 @@ def test_query_tipado(chamada, path, consulta):
     lambda c: c.reports.outgoing_messages_count(1, group_by="date"),
     lambda c: c.custom_attributes.list(1, attribute_model="user"),
     lambda c: c.custom_filters.list(1, filter_type="inbox"),
-    lambda c: c.custom_filters.create(1, {"type": "inbox"}),
-    lambda c: c.custom_filters.update(1, 3, {"type": "inbox"}),
+    lambda c: c.custom_filters.create(1, CustomFilterInput(type="inbox")),
+    lambda c: c.custom_filters.update(1, 3, CustomFilterInput(type="inbox")),
     lambda c: c.audit_logs.list(1, sort="oldest"),
     lambda c: c.reports.summary(1, type_="account", parametros={"type": "wrong"}),
 ])

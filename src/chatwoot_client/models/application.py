@@ -157,6 +157,7 @@ class InboxSettingsInput(_ContratoEntrada):
     sender_name_type: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","enum": ["friendly","professional"]})
     business_name: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str"})
     channel: Mapping[str, Any] | _Ausente = field(default=AUSENTE, metadata={"tipo": "object"})
+    branded_email_layout: str | None | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nullable": True})
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
