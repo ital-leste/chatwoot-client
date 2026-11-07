@@ -101,10 +101,10 @@ def test_cursor_zero_mantem_comportamento_existente():
     assert chamadas[0].url.params["after"] == "0"
 
 
-def test_recurso_sem_contrato_repassa_payload_api_sem_reformatar():
+def test_update_parametrizado_envia_apenas_campos_informados():
     chamadas = []
     with _cliente(chamadas) as cw:
-        cw.labels.update(1, 7, {"description": "Atendimento", "show_on_sidebar": False})
+        cw.labels.update(1, 7, description="Atendimento", show_on_sidebar=False)
     assert len(chamadas) == 1
     assert chamadas[0].method == "PATCH"
     assert json.loads(chamadas[0].content) == {
@@ -127,7 +127,7 @@ def test_campos_ausentes_em_contact_nao_viram_null():
 def test_json_generico_invalido_falha_antes_de_http(dados):
     chamadas = []
     with _cliente(chamadas) as cw, pytest.raises(ValueError):
-        cw.labels.update(1, 7, dados)
+        cw.campaigns.update(1, 7, dados)
     assert chamadas == []
 
 
