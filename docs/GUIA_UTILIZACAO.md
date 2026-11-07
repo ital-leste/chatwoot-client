@@ -18,8 +18,8 @@ from chatwoot_client import (
 Métodos simples recebem argumentos nomeados; métodos modelados exigem seus contratos de entrada. **Nos demais métodos, utilize diretamente os campos documentados na Application API**, normalmente por `Mapping[str, Any]`:
 
 ```python
-# Atualização de etiqueta ainda sem contrato próprio; segue o payload da API.
-cw.labels.update(1, 7, {"description": "Atendimento"})
+# Campanhas usam payload variável da API, encapsulado sob "campaign".
+cw.campaigns.update(1, 7, {"enabled": False})
 ```
 
 Os modelos são apenas de entrada. Os retornos permanecem em `dict`, `list` ou `None` conforme cada endpoint, sem objetos de saída próprios.
@@ -171,7 +171,7 @@ cw.conversations.update_custom_attributes(
 cw.conversations.delete_custom_attributes(1, 9, keys=["interesse"])
 ```
 
-`create()` exige `ConversationCreate`. Os métodos simples não possuem dataclasses redundantes. `update()` e `toggle_priority()` operam sobre prioridade; em ambos, o parâmetro `priority` deve ser fornecido. `priority=None` é uma solicitação **explícita** de limpeza (não é ausência). O contrato `FilterCondition` usa os mesmos campos de filtro no Chatwoot para contatos e conversas. Sua validação é estrutural; a validade de cada operador para cada atributo cabe ao backend.
+`create()` exige `ConversationCreate`. Os métodos simples não possuem dataclasses redundantes. `toggle_priority()` exige `priority` explícito; `update()` aceita `priority`, `sla_policy_id` ou ambos, exigindo ao menos um campo. `priority=None` é uma solicitação **explícita** de limpeza (não é ausência). O contrato `FilterCondition` usa os mesmos campos de filtro no Chatwoot para contatos e conversas. Sua validação é estrutural; a validade de cada operador para cada atributo cabe ao backend.
 
 **Retornos diferentes permanecem diferentes:** `conversations.list()` usa envelope `data.meta/data.payload`; `conversations.filter()` usa `meta/payload`; `conversations.get/create/update()` devolvem objetos, não DTOs. `toggle_priority()` e `set_typing_status()` normalmente retornam `None` (HTTP sem corpo).
 
@@ -210,7 +210,7 @@ cw.contacts.update(1, novo_id, Contact(
 
 **Garantia do cliente:** um campo não informado no `Contact(...)` não entra no JSON de atualização. Os atributos existentes são preservados pelo comportamento de atualização parcial do Chatwoot, sem precisar realizar GET anterior. Não confundir campo omitido com `None` explicitamente informado; este último será serializado como `null`, e o resultado depende das regras do servidor. Para não reenviar campos antigos, crie um `Contact` com apenas os campos que deseja alterar.
 
-Os validadores locais verificam formatos simples de e-mail, E.164 para telefone, tipos básicos e objetos JSON válidos, mas a conta Chatwoot continua validando unicidade e atributos configurados. Dicionários JSON são copiados defensivamente e revalidados ao serializar: a imutabilidade da dataclass não deve ser confundida com imutabilidade profunda dos valores aninhados. O contrato não contempla `avatar` binário nesta fase; `avatar_url` é suportada.
+Os validadores locais verificam formatos simples de e-mail, E.164 para telefone, tipos básicos e objetos JSON válidos, mas a conta Chatwoot continua validando unicidade e atributos configurados. Dicionários JSON são copiados defensivamente e revalidados ao serializar: a imutabilidade da dataclass não deve ser confundida com imutabilidade profunda dos valores aninhados. O contrato suporta `avatar` como campo textual do payload JSON oficial e `avatar_url`; upload binário direto de avatar do contato não é implementado por este método.
 
 ## Respostas rápidas — parâmetros nomeados
 
@@ -296,6 +296,56 @@ para qualquer uso contra Chatwoot real. `merge()` é potencialmente irreversíve
 `replace()` substitui todas as etiquetas. O envio de `agent_bot=None` requer
 homologação real da regra de desvinculação do servidor 4.19.0.
 
-As operações com campos variáveis de canal (`inboxes.create/update`) e configurações
-complexas (`account_agentbots`, automações e Help Center) seguem aceitando
-`Mapping[str, Any]` compatível com a Application API, sem DTOs restritivos.
+As operações de inbox, AgentBots, automações, atributos, filtros, Help Center e integrações
+recebem **contratos dataclass de entrada**. Campos de estrutura dinâmica dentro desses
+contratos (como `channel`, `bot_config`, `actions`, `conditions` e `settings`)
+continuam aceitando objetos/arrays JSON da API, sem inventar subclasses de canais ou
+mapeamentos específicos de outros consumidores. Veja [catálogo dos contratos](CATALOGO_CONTRATOS.md).
+
+## Novos contratos administrativos de entrada
+
+```python
+from chatwoot_client import (
+    CWClient, AgentBotInput, InboxSettingsInput, AutomationRuleInput,
+    CustomAttributeInput, CustomFilterInput, HelpCenterPortalInput,
+    HelpCenterCategoryInput, HelpCenterArticleInput, IntegrationHookInput,
+    AccountSettingsInput, ProfileInput,
+)
+
+# Campos ausentes não são enviados no PATCH.
+cw.account.update(1, AccountSettingsInput(auto_resolve_ignore_waiting=False))
+cw.account_agentbots.create(1, AgentBotInput(name="Atendimento", outgoing_url="https://bot.example/hook"))
+cw.account_agentbots.update(1, 2, AgentBotInput(bot_config={"modo": "teste"}))
+cw.inboxes.create(1, InboxSettingsInput(name="API", channel={"type": "Channel::Api"}))
+cw.inboxes.update(1, 3, InboxSettingsInput(name="Nova identificação"))
+cw.automation_rules.create(1, AutomationRuleInput(
+    name="Etiquetar", event_name="message_created",
+    actions=[{"action_name": "add_label", "action_params": ["triagem"]}],
+    conditions=[], active=False,
+))
+cw.custom_attributes.create(1, CustomAttributeInput(
+    attribute_key="placa", attribute_display_name="Placa", attribute_model=0,
+))
+cw.custom_filters.create(1, CustomFilterInput(
+    name="Pendentes", type="conversation", query={"payload": []},
+))
+cw.help_center.create(1, HelpCenterPortalInput(name="Central", slug="central"))
+cw.help_center.create_category(1, "central", HelpCenterCategoryInput(name="Dúvidas"))
+cw.help_center.create_article(1, "central", HelpCenterArticleInput(
+    title="Guia", content="Conteúdo", category_id=1,
+))
+cw.integrations.create_hook(1, IntegrationHookInput(app_id=2, inbox_id=3, settings={}))
+cw.profile.update(ProfileInput(display_name="Atendimento"))
+
+# Operações simples sem dataclasses redundantes.
+cw.labels.update(1, 3, color="#123456", show_on_sidebar=False)
+cw.teams.create(1, name="Suporte", allow_auto_assign=False)
+cw.inboxes.update_branded_email_layout(1, branded_email_layout=None)
+cw.conversations.update(1, 3, sla_policy_id=10)
+```
+
+Os exemplos são demonstrativos: não executá-los sem dados de teste, permissão e aprovação
+para escrita na instalação real. `profile.update()` serializa `{"profile": {...}}`.
+`campaigns.create/update()` mantém `{"campaign": {...}}` com campos variáveis.
+`account.update_form()` e `profile.update_multipart()` são caminhos alternativos de
+transporte para endpoints já existentes, não novas rotas.

@@ -1,5 +1,14 @@
 # Changelog
 
+## Homolog — conclusão dos contratos Application API 4.19.0 (07/11/2026)
+
+- 11 dataclasses administrativas novas; 17 métodos complexos convertidos para contratos, mais atualização do perfil com envelope `profile`.
+- Equipes, etiquetas e layout de e-mail atualizados por argumentos; SLA da conversa e avatar JSON do contato incluídos.
+- Opções e tipos de consultas adicionais validados antes do HTTP.
+- Rejeição de chaves JSON não textuais aninhadas e novos testes de payload HTTP exato.
+- Matriz e guia atualizados. Cobertura de 124 pares verbo/rota permanece; integrações reais e promoção para main não executadas.
+
+
 ## 2026-11-07 — auditoria contratual em homolog
 
 - Verificadas 124 combinações método/rota contra o Swagger da Application API 4.19.0, sem ausências na matriz.

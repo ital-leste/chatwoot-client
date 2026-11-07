@@ -82,3 +82,15 @@ Entregas de B/C registradas nos testes:
 ### Mudanças de interface
 
 Os métodos simples citados acima substituem o antigo argumento `data` por parâmetros nomeados, quando pertinente. Alterações estão restritas à branch `homolog`; consumidores que importem esta versão deverão atualizar assinaturas antes de qualquer promoção a `main`.
+
+## Segunda rodada — cobertura contratual completa da matriz (07/11/2026)
+
+- **10 classes novas** de entradas estruturadas: `AccountSettingsInput`, `AgentBotInput`, `AutomationRuleInput`, `InboxSettingsInput`, `CustomAttributeInput`, `CustomFilterInput`, `HelpCenterPortalInput`, `HelpCenterCategoryInput`, `HelpCenterArticleInput` e `IntegrationHookInput`. Somadas à `ProfileInput`, são 11 contratos administrativos novos.
+- **17 métodos complexos** passam a exigir essas dataclasses; `profile.update` também recebe contrato específico e envia envelope obrigatório.
+- **Escritas simples** parametrizadas: `teams.create/update`, `labels.update` e `inboxes.update_branded_email_layout`. `conversations.update` cobre agora `sla_policy_id`, preservando o significado de `priority=None`, e `Contact` oferece `avatar` como campo JSON.
+- **Consultas** revisadas: valores de `sort`, `page`, `types`, `business_hours`, `inbox_ids`, `label_ids`, eventos de automação e templates de inbox, com validação pré-HTTP.
+- **Segurança de payloads**: rejeitar chaves não textuais em objetos JSON aninhados antes do HTTP, sem coerção silenciosa.
+- **Cobertura de Swagger** permanece em 124 pares verbo/rota, 75 caminhos. Testes com `MockTransport` validam serialização, erros, rotas e contratos; CI Linux e Windows; **homologação integrada real permanece pendente por rota**.
+- **Payload intencionalmente dinâmico**: campanhas dentro de envelope `campaign`; configuração específica de canal em `InboxSettingsInput.channel`; condições/ações de automações, configurações de bot, hooks e filtros dentro das dataclasses. O pacote não define regras do ItalBot nem de outro consumidor.
+
+A promoção de `homolog` para `main` exige avaliação de compatibilidade das mudanças de assinatura com consumidores atuais e aprovação do gate de regressão. Nenhum POST/PATCH/DELETE em Chatwoot real foi disparado por esta rodada.

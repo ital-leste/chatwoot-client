@@ -46,11 +46,11 @@ Há três estilos de entrada, escolhidos pela complexidade do recurso:
 |---|---|---|
 | **Argumentos tipados** | Campos simples e parâmetros de consulta | `cw.canned_responses.create(1, short_code="prazo", content="Retornaremos em breve.")` |
 | **Contrato tipado** | Entrada estruturada com validações | `cw.contacts.update(1, 42, Contact(name="Maria"))` |
-| **Payload da API** | Método sem contrato específico | `cw.labels.update(1, 7, {"description": "Atendimento"})` |
+| **Payload da API** | Método sem contrato específico | `cw.campaigns.update(1, 7, {"enabled": False})` |
 
 **Quando não houver um contrato de entrada próprio, utilize diretamente os campos e a estrutura documentados pela Application API**, geralmente passando `dict` ou `Mapping[str, Any]`. Não é necessário criar uma dataclass para toda operação.
 
-Modelos de entrada disponíveis: `Contact`, `ConversationCreate`, `FilterCondition`, `TextMessage`, `MediaMessage`, `Attachment` e `LabelDefinition`. Enumerações incluem `ConversationStatus`, `ConversationPriority`, `MessageType` e `MimeType`.
+Modelos de entrada disponíveis: `Contact`, `ConversationCreate`, `FilterCondition`, `TextMessage`, `MediaMessage`, `Attachment`, `LabelDefinition` e os contratos administrativos do módulo `models.application` (AgentBot, Inbox, AutomationRule, Help Center, perfil, conta, atributos, filtros e integrações). Enumerações incluem `ConversationStatus`, `ConversationPriority`, `MessageType` e `MimeType`.
 
 ### Exemplo de atualização parcial de contato
 
@@ -110,7 +110,7 @@ Paginação, cursores e metadados são preservados; não há agregação automá
 
 `client.py` compõe os recursos; `transport.py` executa requisições; `models/` abriga somente os contratos de **entrada** necessários; `enums/` reúne valores tipados; e os demais módulos de `src/chatwoot_client/` implementam as operações por recurso.
 
-A matriz documenta **124 pares verbo/rota mapeados** da Application API 4.19.0. Mapeamento e testes simulados não demonstram, por si só, a execução bem-sucedida de todos esses endpoints em uma instalação real.
+A matriz documenta **124 pares verbo/rota em 75 caminhos** da Application API 4.19.0. Os recursos complexos usam contratos dataclass de entrada, e operações simples usam argumentos nomeados. O catálogo de contratos diferencia cobertura de rota, validação de entradas e homologação real. A cobertura estática e os testes simulados não demonstram, por si só, a execução bem-sucedida de todos os endpoints em uma instalação real.
 
 **Evolução em `homolog` (07/11/2026):** auditoria por rota, com 124 pares
 verbo/rota preservados, e padronização de operações administrativas, parâmetros
@@ -123,7 +123,8 @@ continua distinta da execução de testes simulados.
 | Documento | Finalidade |
 |---|---|
 | [Guia de utilização](docs/GUIA_UTILIZACAO.md) | Exemplos e assinaturas modeladas |
-| [Matriz da API](docs/MATRIZ_API.md) | Verbos, rotas e recursos |
+| [Matriz da API](docs/MATRIZ_API.md) | Verbos, rotas, entradas e estado de homologação |
+| [Catálogo dos contratos](docs/CATALOGO_CONTRATOS.md) | Modelos e parâmetros públicos por recurso |
 | [Entradas por rota](docs/ESPECIFICACAO_ENTRADAS.md) | Query obrigatória, requestBody e MIME declarados no Swagger 4.19.0 |
 | [Arquitetura](docs/ARQUITETURA.md) | Responsabilidades e limites |
 | [Contratos HTTP](docs/CONTRATOS_HTTP.md) | Requisições, respostas e falhas |
