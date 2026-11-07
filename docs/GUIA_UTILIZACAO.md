@@ -244,3 +244,58 @@ with CWClient(URL, TOKEN) as cw:
 A interface de entrada usa parâmetros nomeados tipados em operações simples e contratos de domínio quando há estrutura ou validações que os justificam. Não forneça dicionários onde a operação exige `TextMessage`, `MediaMessage`, `LabelDefinition`, `Contact`, `ConversationCreate` ou `FilterCondition`. Recursos ainda não modelados continuam espelhando a API com `Mapping`.
 
 Erros de conexão, HTTP ou JSON inválido geram `ErroAPIChatwoot`, sem vazar dados de resposta. A confirmação da API não representa confirmação de entrega WhatsApp. Não há retry implícito de POST/PATCH/DELETE.
+
+## Revisão contratual 07/11/2026 — operações administrativas
+
+As entradas simples abaixo deixam de receber `data: Mapping`, passando a aceitar
+parâmetros nomeados. Não existe duplicação do método com payload legado.
+
+```python
+# Associar contato, mesclar contatos e substituir etiquetas de contato.
+cw.contacts.add_inbox(1, 42, inbox_id=3, source_id="canal-whatsapp")
+cw.contacts.merge(1, base_contact_id=42, mergee_contact_id=43)
+cw.contact_labels.replace(1, 42, ["aguardando-laudo"])
+
+# Associar/desassociar AgentBot e gerir membros da inbox.
+cw.inboxes.set_agent_bot(1, 3, agent_bot=5)
+cw.inboxes.set_agent_bot(1, 3, agent_bot=None)
+cw.inboxes.add_member(1, inbox_id=3, user_ids=[10, 11])
+cw.inboxes.update_members(1, inbox_id=3, user_ids=[10])
+cw.inboxes.remove_members(1, inbox_id=3, user_ids=[11])
+
+# Gerenciamento de equipes, atualização de status de mensagem.
+cw.teams.add_members(1, 2, [10])
+cw.teams.remove_members(1, 2, [11])
+cw.messages.update_status(1, 9, 100, status="failed", external_error="motivo")
+
+# Agentes e webhooks com opções tipadas.
+cw.agents.create(1, name="João", email="joao@example.com", role="agent")
+cw.agents.update(1, 10, role="administrator", availability="busy")
+cw.webhooks.create(
+    1, url="https://hooks.example.com/receiver",
+    subscriptions=["message_created"],
+)
+cw.webhooks.update(1, 5, name="Receptor principal")
+
+# Campanhas preservam o envelope obrigatório da API.
+cw.campaigns.create(1, {"title": "Teste", "enabled": False})
+cw.campaigns.update(1, 5, {"enabled": False})
+
+# Enums de consulta devem coincidir com as opções do Swagger.
+cw.reports.list_conversation_statistics(
+    1, metric="conversations_count", type_="account"
+)
+cw.reports.outgoing_messages_count(1, group_by="inbox")
+cw.custom_attributes.list(1, attribute_model="0")
+cw.custom_filters.list(1, filter_type="conversation")
+cw.audit_logs.list(1, sort="desc")
+```
+
+Os exemplos de mutação acima são ilustrativos e exigem permissões e autorização
+para qualquer uso contra Chatwoot real. `merge()` é potencialmente irreversível;
+`replace()` substitui todas as etiquetas. O envio de `agent_bot=None` requer
+homologação real da regra de desvinculação do servidor 4.19.0.
+
+As operações com campos variáveis de canal (`inboxes.create/update`) e configurações
+complexas (`account_agentbots`, automações e Help Center) seguem aceitando
+`Mapping[str, Any]` compatível com a Application API, sem DTOs restritivos.

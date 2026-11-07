@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-07 — auditoria contratual em homolog
+
+- Verificadas 124 combinações método/rota contra o Swagger da Application API 4.19.0, sem ausências na matriz.
+- Padronizadas 27 operações prioritárias: membros de inbox/equipe, contatos, etiquetas, status de mensagens, agentes, webhooks, campanhas e enums de consulta.
+- Contrato de campanhas passa a serializar o envelope obrigatório `campaign`; parâmetros administrativos validados antes de HTTP.
+- Matriz enriquecida com entrada, revisão e estado de homologação real; novos testes mock positivos e negativos e documento de auditoria A–B–C.
+- Nenhum endpoint real foi chamado por esta evolução; alterações exclusivas da branch homolog.
+
+
 ## G3 — homologacao 2026-11-06
 
 - Downloads de anexos HTTPS seguem em `follow_redirects=False`. Respostas HTTP 3xx agora levantam `ErroRedirecionamentoAnexoChatwoot` (subclasse de `ErroAnexoChatwoot`) antes do POST. O consumidor pode distinguir `media_redirect_rejected` de `outcome_unknown` de escrita.

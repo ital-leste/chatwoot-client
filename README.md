@@ -112,6 +112,14 @@ Paginação, cursores e metadados são preservados; não há agregação automá
 
 A matriz documenta **124 pares verbo/rota mapeados** da Application API 4.19.0. Mapeamento e testes simulados não demonstram, por si só, a execução bem-sucedida de todos esses endpoints em uma instalação real.
 
+**Evolução em `homolog` (07/11/2026):** auditoria por rota, com 124 pares
+verbo/rota preservados, e padronização de operações administrativas, parâmetros
+de relatórios e envelope de campanhas. Veja
+[Auditoria contratual](docs/AUDITORIA_CONTRATUAL.md) e
+[Matriz da API](docs/MATRIZ_API.md). A homologação integrada por endpoint
+continua distinta da execução de testes simulados.
+
+
 | Documento | Finalidade |
 |---|---|
 | [Guia de utilização](docs/GUIA_UTILIZACAO.md) | Exemplos e assinaturas modeladas |

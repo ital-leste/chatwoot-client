@@ -55,3 +55,23 @@ Data-base: 2026-11-07. Branch de trabalho: `homolog`.
 ## Limites
 
 Cobertura restrita à Application API documentada do Chatwoot v4.19.0. Platform API, Client API e endpoints internos não fazem parte deste gate.
+
+## Estado da execução em `homolog` — 07/11/2026
+
+As duas branches iniciaram no mesmo commit `deff53336e09`; a implementação partiu de `homolog` sem alteração em `main`.
+
+Entregas de B/C registradas nos testes:
+
+- **11 operações** de contatos, inboxes, etiquetas, equipes e mensagens com parâmetros explícitos e validação negativa.
+- **4 operações** de agentes e webhooks com argumentos tipados e validações de campos.
+- **2 operações** de campanhas com envelope `{"campaign": {...}}` exigido pelo Swagger.
+- **10 operações** de consultas/filtros com validações de enums permitidos (relatórios, atributos, filtros, auditoria). A contagem engloba métodos que continuam aceitando payloads da API onde a estrutura é dinâmica.
+- **Total de 27 pares método/rota** com revisão adicional de assinatura/envelope/validação e testes MockTransport específicos. Os demais métodos permanecem mapeados; não foram reescritos sem justificativa.
+
+### Gate de homologação real
+
+**Não executado nesta iteração**: ambiente e credenciais reais de Chatwoot não são necessários para CI. Não registrar operações como aprovadas em integração real apenas pelo sucesso dos mocks. Para cada endpoint, confirmar permissão, estado pré/pós operação e compatibilidade da instalação, usando somente dados de teste e autorização explícita para escritas. 
+
+### Mudanças de interface
+
+Os métodos simples citados acima substituem o antigo argumento `data` por parâmetros nomeados, quando pertinente. Alterações estão restritas à branch `homolog`; consumidores que importem esta versão deverão atualizar assinaturas antes de qualquer promoção a `main`.
