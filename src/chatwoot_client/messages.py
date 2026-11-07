@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from .models import MediaMessage, TextMessage
 from .attachment_resolver import DEFAULT_MAX_BYTES, preparar_anexos
@@ -100,14 +100,14 @@ class MessagesResource:
 
     def update_status(
         self, account_id: int, conversation_id: int, message_id: int,
-        *, status: str, external_error: str | None = None,
+        *, status: Literal["sent", "delivered", "read", "failed"], external_error: str | None = None,
     ) -> Any:
         """Atualiza status de mensagem sem converter os valores da API."""
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(conversation_id, "conversation_id")
         self._client._validar_id(message_id, "message_id")
-        if not isinstance(status, str) or not status.strip():
-            raise ValueError("status deve ser texto não vazio.")
+        if not isinstance(status, str) or status not in ("sent", "delivered", "read", "failed"):
+            raise ValueError("status deve ser sent, delivered, read ou failed.")
         dados = {"status": status}
         if external_error is not None:
             if not isinstance(external_error, str):

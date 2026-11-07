@@ -7,6 +7,8 @@ from .conversations import ConversationCreate
 from .filters import FilterCondition
 
 __all__ = ["Attachment", "TextMessage", "MediaMessage", "LabelDefinition", "Contact", "ConversationCreate", "FilterCondition",
-    "AccountSettingsInput", "AgentBotInput", "AutomationRuleInput", "InboxSettingsInput", "CustomAttributeInput", "CustomFilterInput", "HelpCenterPortalInput", "HelpCenterCategoryInput", "HelpCenterArticleInput", "IntegrationHookInput",
+    "ProfileInput", "AccountSettingsInput", "AgentBotInput", "AutomationRuleInput", "InboxSettingsInput", "CustomAttributeInput", "CustomFilterInput", "HelpCenterPortalInput", "HelpCenterCategoryInput", "HelpCenterArticleInput", "IntegrationHookInput",
 ]
 from .application import AccountSettingsInput, AgentBotInput, AutomationRuleInput, InboxSettingsInput, CustomAttributeInput, CustomFilterInput, HelpCenterPortalInput, HelpCenterCategoryInput, HelpCenterArticleInput, IntegrationHookInput
+
+from .application import ProfileInput

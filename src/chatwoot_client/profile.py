@@ -6,6 +6,8 @@ from collections.abc import Mapping
 
 from typing import TYPE_CHECKING, Any
 
+from .models.application import ProfileInput
+
 if TYPE_CHECKING:
     from .client import CWClient
 
@@ -26,13 +28,11 @@ class ProfileResource:
             caminho=path,
         )
 
-    def update(self, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
-        """PUT /api/v1/profile; retorna JSON ou None."""
-        if not isinstance(data, Mapping):
-            raise ValueError("data deve ser objeto JSON.")
-        caminho = f"api/v1/profile"
-        consulta = parametros
-        return self._client._solicitar_json("PUT", caminho, dados=data, parametros=consulta)
+    def update(self, profile: ProfileInput) -> Any:
+        """PUT com envelope profile; não imprime nem registra credenciais."""
+        if not isinstance(profile, ProfileInput):
+            raise TypeError("profile deve ser ProfileInput.")
+        return self._client._put("api/v1/profile", dados={"profile": profile.to_payload()})
 
     def update_multipart(
         self,

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import re
 
 from .models import LabelDefinition
 
@@ -45,15 +46,28 @@ class LabelsResource:
         consulta = parametros
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def update(self, account_id: int, label_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
-        """PATCH /api/v1/accounts/{account_id}/labels/{id}; retorna JSON ou None."""
+    def update(self, account_id: int, label_id: int, *,
+               title: str | None = None, description: str | None = None,
+               color: str | None = None, show_on_sidebar: bool | None = None) -> Any:
+        """PATCH parcial sem exigir LabelDefinition de criação."""
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(label_id, "label_id")
-        if not isinstance(data, Mapping):
-            raise ValueError("data deve ser objeto JSON.")
-        caminho = f"api/v1/accounts/{account_id}/labels/{label_id}"
-        consulta = parametros
-        return self._client._solicitar_json("PATCH", caminho, dados=data, parametros=consulta)
+        dados = {k: v for k, v in (
+            ("title", title), ("description", description),
+            ("color", color), ("show_on_sidebar", show_on_sidebar),
+        ) if v is not None}
+        if not dados:
+            raise ValueError("Atualização requer ao menos um campo.")
+        for nome in ("title", "description"):
+            if nome in dados and (not isinstance(dados[nome], str) or
+                                  (nome == "title" and not dados[nome].strip())):
+                raise ValueError(f"{nome} deve ser texto válido.")
+        if "color" in dados and (not isinstance(color, str) or
+                                 not re.fullmatch(r"#[0-9A-Fa-f]{6}", color)):
+            raise ValueError("color deve seguir #RRGGBB.")
+        if "show_on_sidebar" in dados and type(show_on_sidebar) is not bool:
+            raise ValueError("show_on_sidebar deve ser bool.")
+        return self._client._patch(f"api/v1/accounts/{account_id}/labels/{label_id}", dados=dados)
 
     def delete(self, account_id: int, label_id: int, *, parametros: Mapping[str, Any] | None = None) -> Any:
         """DELETE /api/v1/accounts/{account_id}/labels/{id}; retorna JSON ou None."""

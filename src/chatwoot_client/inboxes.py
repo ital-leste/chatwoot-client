@@ -37,14 +37,17 @@ class InboxesResource:
         consulta = parametros
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def update_branded_email_layout(self, account_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:
-        """PATCH /api/v1/accounts/{account_id}/branded_email_layout; retorna JSON ou None."""
+    def update_branded_email_layout(
+        self, account_id: int, *, branded_email_layout: str | None,
+    ) -> Any:
+        """None explícito é serializado como JSON null."""
         self._client._validar_id(account_id, "account_id")
-        if not isinstance(data, Mapping):
-            raise ValueError("data deve ser objeto JSON.")
-        caminho = f"api/v1/accounts/{account_id}/branded_email_layout"
-        consulta = parametros
-        return self._client._solicitar_json("PATCH", caminho, dados=data, parametros=consulta)
+        if branded_email_layout is not None and not isinstance(branded_email_layout, str):
+            raise ValueError("branded_email_layout deve ser texto ou None.")
+        return self._client._patch(
+            f"api/v1/accounts/{account_id}/branded_email_layout",
+            dados={"branded_email_layout": branded_email_layout},
+        )
 
     def list(self, account_id: int, *, parametros: Mapping[str, Any] | None = None) -> Any:
         """GET /api/v1/accounts/{account_id}/inboxes; retorna JSON ou None."""

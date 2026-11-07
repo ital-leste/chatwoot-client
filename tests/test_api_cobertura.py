@@ -1,7 +1,7 @@
 """Contratos HTTP de 108 operações novas (OpenAPI Chatwoot 4.19.0)."""
 import httpx
 import pytest
-from chatwoot_client import CWClient, Contact, ConversationCreate, ConversationPriority, FilterCondition, AccountSettingsInput, AgentBotInput, AutomationRuleInput, InboxSettingsInput, CustomAttributeInput, CustomFilterInput, HelpCenterPortalInput, HelpCenterCategoryInput, HelpCenterArticleInput, IntegrationHookInput
+from chatwoot_client import CWClient, Contact, ConversationCreate, ConversationPriority, FilterCondition, AccountSettingsInput, AgentBotInput, AutomationRuleInput, InboxSettingsInput, CustomAttributeInput, CustomFilterInput, HelpCenterPortalInput, HelpCenterCategoryInput, HelpCenterArticleInput, IntegrationHookInput, ProfileInput
 
 CASOS = [
   [
@@ -540,13 +540,8 @@ CASOS = [
   [
     "inboxes",
     "update_branded_email_layout",
-    [
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1],
+    {"branded_email_layout":"<section>Email</section>"},
     "PATCH",
     "/api/v1/accounts/1/branded_email_layout",
     True
@@ -667,14 +662,8 @@ CASOS = [
   [
     "labels",
     "update",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1,1],
+    {"color":"#123456"},
     "PATCH",
     "/api/v1/accounts/1/labels/1",
     True
@@ -757,11 +746,7 @@ CASOS = [
   [
     "profile",
     "update",
-    [
-      {
-        "name": "teste"
-      }
-    ],
+    [ProfileInput(name="Teste")],
     {},
     "PUT",
     "/api/v1/profile",
@@ -781,13 +766,8 @@ CASOS = [
   [
     "teams",
     "create",
-    [
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1],
+    {"name":"Equipe"},
     "POST",
     "/api/v1/accounts/1/teams",
     True
@@ -807,14 +787,8 @@ CASOS = [
   [
     "teams",
     "update",
-    [
-      1,
-      1,
-      {
-        "name": "teste"
-      }
-    ],
-    {},
+    [1,1],
+    {"name":"Equipe atualizada"},
     "PATCH",
     "/api/v1/accounts/1/teams/1",
     True

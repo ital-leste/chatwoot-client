@@ -232,4 +232,16 @@ class IntegrationHookInput(_ContratoEntrada):
     status: int | _Ausente = field(default=AUSENTE, metadata={"tipo": "int"})
     settings: Mapping[str, Any] | _Ausente = field(default=AUSENTE, metadata={"tipo": "object"})
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ProfileInput(_ContratoEntrada):
+    """Campos do envelope profile exigido no PUT de perfil."""
+    name: str | _Ausente = field(default=AUSENTE, metadata={"tipo":"str"})
+    email: str | _Ausente = field(default=AUSENTE, metadata={"tipo":"str"})
+    display_name: str | _Ausente = field(default=AUSENTE, metadata={"tipo":"str"})
+    message_signature: str | _Ausente = field(default=AUSENTE, metadata={"tipo":"str"})
+    phone_number: str | _Ausente = field(default=AUSENTE, metadata={"tipo":"str"})
+    current_password: str | _Ausente = field(default=AUSENTE, metadata={"tipo":"str"})
+    password: str | _Ausente = field(default=AUSENTE, metadata={"tipo":"str"})
+    password_confirmation: str | _Ausente = field(default=AUSENTE, metadata={"tipo":"str"})
+    ui_settings: Mapping[str, Any] | _Ausente = field(default=AUSENTE, metadata={"tipo":"object"})
 
