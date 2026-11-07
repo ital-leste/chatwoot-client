@@ -1,7 +1,7 @@
 """Contratos tipados de entrada da Application API Chatwoot 4.19.0.
 
 Mantêm o JSON de saída inalterado. Campos ausentes não entram em PATCH;
-None explícito só é aceito quando o esquema permite null.
+None explícito só é aceito quando o esquema permite None.
 """
 from __future__ import annotations
 import json
@@ -102,13 +102,13 @@ class _ContratoEntrada:
 @dataclass(frozen=True, slots=True, kw_only=True)
 class AccountSettingsInput(_ContratoEntrada):
     """Entrada tipada para PATCH /api/v1/accounts/{account_id}."""
-    name: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": true})
+    name: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": True})
     locale: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str"})
     domain: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str"})
     support_email: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str"})
-    auto_resolve_after: int | None | _Ausente = field(default=AUSENTE, metadata={"tipo": "int","nullable": true})
-    auto_resolve_message: str | None | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nullable": true})
-    auto_resolve_ignore_waiting: bool | None | _Ausente = field(default=AUSENTE, metadata={"tipo": "bool","nullable": true})
+    auto_resolve_after: int | None | _Ausente = field(default=AUSENTE, metadata={"tipo": "int","nullable": True})
+    auto_resolve_message: str | None | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nullable": True})
+    auto_resolve_ignore_waiting: bool | None | _Ausente = field(default=AUSENTE, metadata={"tipo": "bool","nullable": True})
     industry: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str"})
     company_size: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str"})
     timezone: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str"})
@@ -117,9 +117,9 @@ class AccountSettingsInput(_ContratoEntrada):
 @dataclass(frozen=True, slots=True, kw_only=True)
 class AgentBotInput(_ContratoEntrada):
     """Entrada tipada para POST /api/v1/accounts/{account_id}/agent_bots."""
-    name: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": true})
+    name: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": True})
     description: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str"})
-    outgoing_url: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": true})
+    outgoing_url: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": True})
     avatar: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str"})
     avatar_url: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str"})
     bot_type: int | _Ausente = field(default=AUSENTE, metadata={"tipo": "int"})
@@ -129,9 +129,9 @@ class AgentBotInput(_ContratoEntrada):
 @dataclass(frozen=True, slots=True, kw_only=True)
 class AutomationRuleInput(_ContratoEntrada):
     """Entrada tipada para POST /api/v1/accounts/{account_id}/automation_rules."""
-    name: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": true})
+    name: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": True})
     description: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str"})
-    event_name: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": true,"enum": ["conversation_created","conversation_updated","conversation_resolved","message_created"]})
+    event_name: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": True,"enum": ["conversation_created","conversation_updated","conversation_resolved","message_created"]})
     active: bool | _Ausente = field(default=AUSENTE, metadata={"tipo": "bool"})
     actions: Sequence[Mapping[str, Any]] | _Ausente = field(default=AUSENTE, metadata={"tipo": "array_obj"})
     conditions: Sequence[Mapping[str, Any]] | _Ausente = field(default=AUSENTE, metadata={"tipo": "array_obj"})
@@ -140,7 +140,7 @@ class AutomationRuleInput(_ContratoEntrada):
 @dataclass(frozen=True, slots=True, kw_only=True)
 class InboxSettingsInput(_ContratoEntrada):
     """Entrada tipada para POST /api/v1/accounts/{account_id}/inboxes."""
-    name: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": true})
+    name: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": True})
     avatar: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str"})
     greeting_enabled: bool | _Ausente = field(default=AUSENTE, metadata={"tipo": "bool"})
     greeting_message: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str"})
@@ -165,7 +165,7 @@ class CustomAttributeInput(_ContratoEntrada):
     attribute_display_name: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str"})
     attribute_display_type: int | _Ausente = field(default=AUSENTE, metadata={"tipo": "int"})
     attribute_description: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str"})
-    attribute_key: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": true})
+    attribute_key: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": True})
     attribute_values: Sequence[str] | _Ausente = field(default=AUSENTE, metadata={"tipo": "array_str"})
     attribute_model: int | _Ausente = field(default=AUSENTE, metadata={"tipo": "int"})
     regex_pattern: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str"})
@@ -175,7 +175,7 @@ class CustomAttributeInput(_ContratoEntrada):
 @dataclass(frozen=True, slots=True, kw_only=True)
 class CustomFilterInput(_ContratoEntrada):
     """Entrada tipada para POST /api/v1/accounts/{account_id}/custom_filters."""
-    name: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": true})
+    name: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": True})
     type: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","enum": ["conversation","contact","report"]})
     query: Mapping[str, Any] | _Ausente = field(default=AUSENTE, metadata={"tipo": "object"})
 
@@ -187,9 +187,9 @@ class HelpCenterPortalInput(_ContratoEntrada):
     custom_domain: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str"})
     header_text: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str"})
     homepage_link: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str"})
-    name: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": true})
+    name: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": True})
     page_title: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str"})
-    slug: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": true})
+    slug: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": True})
     archived: bool | _Ausente = field(default=AUSENTE, metadata={"tipo": "bool"})
     config: Mapping[str, Any] | _Ausente = field(default=AUSENTE, metadata={"tipo": "object"})
 
@@ -197,10 +197,10 @@ class HelpCenterPortalInput(_ContratoEntrada):
 @dataclass(frozen=True, slots=True, kw_only=True)
 class HelpCenterCategoryInput(_ContratoEntrada):
     """Entrada tipada para POST /api/v1/accounts/{account_id}/portals/{id}/categories."""
-    name: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": true})
+    name: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": True})
     description: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str"})
     position: int | _Ausente = field(default=AUSENTE, metadata={"tipo": "int"})
-    slug: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": true})
+    slug: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": True})
     locale: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str"})
     icon: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str"})
     parent_category_id: int | _Ausente = field(default=AUSENTE, metadata={"tipo": "int"})
@@ -210,8 +210,8 @@ class HelpCenterCategoryInput(_ContratoEntrada):
 @dataclass(frozen=True, slots=True, kw_only=True)
 class HelpCenterArticleInput(_ContratoEntrada):
     """Entrada tipada para POST /api/v1/accounts/{account_id}/portals/{id}/articles."""
-    title: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": true})
-    slug: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": true})
+    title: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": True})
+    slug: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str","nao_vazio": True})
     position: int | _Ausente = field(default=AUSENTE, metadata={"tipo": "int"})
     content: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str"})
     description: str | _Ausente = field(default=AUSENTE, metadata={"tipo": "str"})
