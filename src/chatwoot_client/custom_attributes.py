@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
+
+from .input_validation import validar_opcao
 
 if TYPE_CHECKING:
     from .client import CWClient
@@ -14,7 +16,7 @@ class CustomAttributesResource:
     def __init__(self, client: CWClient) -> None:
         self._client = client
 
-    def list(self, account_id: int, *, attribute_model: str, parametros: Mapping[str, Any] | None = None) -> Any:
+    def list(self, account_id: int, *, attribute_model: Literal["0", "1"], parametros: Mapping[str, Any] | None = None) -> Any:
         """GET /api/v1/accounts/{account_id}/custom_attribute_definitions; retorna JSON ou None."""
         self._client._validar_id(account_id, "account_id")
         caminho = f"api/v1/accounts/{account_id}/custom_attribute_definitions"
@@ -24,6 +26,7 @@ class CustomAttributesResource:
         consulta = {k: v for k, v in consulta.items() if v is not None}
         if parametros:
             consulta.update(parametros)
+        validar_opcao(consulta["attribute_model"], ("0", "1"), "attribute_model")
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
     def create(self, account_id: int, data: Mapping[str, Any], *, parametros: Mapping[str, Any] | None = None) -> Any:

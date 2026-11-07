@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
+
+from .input_validation import validar_opcao
 
 if TYPE_CHECKING:
     from .client import CWClient
@@ -31,7 +33,7 @@ class ReportsResource:
             consulta.update(parametros)
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def list_conversation_statistics(self, account_id: int, *, metric: str, type_: str, id: str | None = None, since: str | None = None, until: str | None = None, parametros: Mapping[str, Any] | None = None) -> Any:
+    def list_conversation_statistics(self, account_id: int, *, metric: Literal["conversations_count", "incoming_messages_count", "outgoing_messages_count", "avg_first_response_time", "avg_resolution_time", "resolutions_count"], type_: Literal["account", "agent", "inbox", "label", "team"], id: str | None = None, since: str | None = None, until: str | None = None, parametros: Mapping[str, Any] | None = None) -> Any:
         """GET /api/v2/accounts/{account_id}/reports; retorna JSON ou None."""
         self._client._validar_id(account_id, "account_id")
         caminho = f"api/v2/accounts/{account_id}/reports"
@@ -45,9 +47,11 @@ class ReportsResource:
         consulta = {k: v for k, v in consulta.items() if v is not None}
         if parametros:
             consulta.update(parametros)
+        validar_opcao(consulta["metric"], ("conversations_count", "incoming_messages_count", "outgoing_messages_count", "avg_first_response_time", "avg_resolution_time", "resolutions_count"), "metric")
+        validar_opcao(consulta["type"], ("account", "agent", "inbox", "label", "team"), "type")
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def summary(self, account_id: int, *, type_: str, id: str | None = None, since: str | None = None, until: str | None = None, parametros: Mapping[str, Any] | None = None) -> Any:
+    def summary(self, account_id: int, *, type_: Literal["account", "agent", "inbox", "label", "team"], id: str | None = None, since: str | None = None, until: str | None = None, parametros: Mapping[str, Any] | None = None) -> Any:
         """GET /api/v2/accounts/{account_id}/reports/summary; retorna JSON ou None."""
         self._client._validar_id(account_id, "account_id")
         caminho = f"api/v2/accounts/{account_id}/reports/summary"
@@ -60,9 +64,10 @@ class ReportsResource:
         consulta = {k: v for k, v in consulta.items() if v is not None}
         if parametros:
             consulta.update(parametros)
+        validar_opcao(consulta["type"], ("account", "agent", "inbox", "label", "team"), "type")
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def conversation_metrics(self, account_id: int, *, type_: str, parametros: Mapping[str, Any] | None = None) -> Any:
+    def conversation_metrics(self, account_id: int, *, type_: Literal["account"], parametros: Mapping[str, Any] | None = None) -> Any:
         """GET /api/v2/accounts/{account_id}/reports/conversations; retorna JSON ou None."""
         self._client._validar_id(account_id, "account_id")
         caminho = f"api/v2/accounts/{account_id}/reports/conversations"
@@ -72,9 +77,10 @@ class ReportsResource:
         consulta = {k: v for k, v in consulta.items() if v is not None}
         if parametros:
             consulta.update(parametros)
+        validar_opcao(consulta["type"], ("account",), "type")
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def agent_conversation_metrics(self, account_id: int, *, type_: str, user_id: str | None = None, parametros: Mapping[str, Any] | None = None) -> Any:
+    def agent_conversation_metrics(self, account_id: int, *, type_: Literal["agent"], user_id: str | None = None, parametros: Mapping[str, Any] | None = None) -> Any:
         """GET /api/v2/accounts/{account_id}/reports/conversations/; retorna JSON ou None."""
         self._client._validar_id(account_id, "account_id")
         caminho = f"api/v2/accounts/{account_id}/reports/conversations/"
@@ -85,6 +91,7 @@ class ReportsResource:
         consulta = {k: v for k, v in consulta.items() if v is not None}
         if parametros:
             consulta.update(parametros)
+        validar_opcao(consulta["type"], ("agent",), "type")
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
     def channel_summary(self, account_id: int, *, since: str | None = None, until: str | None = None, parametros: Mapping[str, Any] | None = None) -> Any:
@@ -170,7 +177,7 @@ class ReportsResource:
             consulta.update(parametros)
         return self._client._solicitar_json("GET", caminho, parametros=consulta)
 
-    def outgoing_messages_count(self, account_id: int, *, group_by: str, since: str | None = None, until: str | None = None, parametros: Mapping[str, Any] | None = None) -> Any:
+    def outgoing_messages_count(self, account_id: int, *, group_by: Literal["agent", "team", "inbox", "label"], since: str | None = None, until: str | None = None, parametros: Mapping[str, Any] | None = None) -> Any:
         """GET /api/v2/accounts/{account_id}/reports/outgoing_messages_count; retorna JSON ou None."""
         self._client._validar_id(account_id, "account_id")
         caminho = f"api/v2/accounts/{account_id}/reports/outgoing_messages_count"
@@ -182,4 +189,5 @@ class ReportsResource:
         consulta = {k: v for k, v in consulta.items() if v is not None}
         if parametros:
             consulta.update(parametros)
+        validar_opcao(consulta["group_by"], ("agent", "team", "inbox", "label"), "group_by")
         return self._client._solicitar_json("GET", caminho, parametros=consulta)

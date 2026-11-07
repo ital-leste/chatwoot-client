@@ -12,3 +12,9 @@ def validar_ids_usuarios(user_ids: Sequence[int]) -> list[int]:
     if len(user_ids) != len(set(user_ids)):
         raise ValueError("user_ids não deve conter duplicatas.")
     return list(user_ids)
+
+def validar_opcao(valor: str, permitidos: tuple[str, ...], nome: str) -> str:
+    """Rejeita opções fora do enum documentado antes de qualquer HTTP."""
+    if not isinstance(valor, str) or valor not in permitidos:
+        raise ValueError(f"{nome} inválido; permitidos: {', '.join(permitidos)}.")
+    return valor

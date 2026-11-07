@@ -162,12 +162,8 @@ CASOS = [
   [
     "custom_attributes",
     "list",
-    [
-      1
-    ],
-    {
-      "attribute_model": "teste"
-    },
+    [1],
+    {"attribute_model": "0"},
     "GET",
     "/api/v1/accounts/1/custom_attribute_definitions",
     False
@@ -1076,13 +1072,8 @@ CASOS = [
   [
     "reports",
     "list_conversation_statistics",
-    [
-      1
-    ],
-    {
-      "metric": "teste",
-      "type_": "teste"
-    },
+    [1],
+    {"metric": "conversations_count", "type_": "account"},
     "GET",
     "/api/v2/accounts/1/reports",
     False
@@ -1090,12 +1081,8 @@ CASOS = [
   [
     "reports",
     "summary",
-    [
-      1
-    ],
-    {
-      "type_": "teste"
-    },
+    [1],
+    {"type_": "team"},
     "GET",
     "/api/v2/accounts/1/reports/summary",
     False
@@ -1103,12 +1090,8 @@ CASOS = [
   [
     "reports",
     "conversation_metrics",
-    [
-      1
-    ],
-    {
-      "type_": "teste"
-    },
+    [1],
+    {"type_": "account"},
     "GET",
     "/api/v2/accounts/1/reports/conversations",
     False
@@ -1116,12 +1099,8 @@ CASOS = [
   [
     "reports",
     "agent_conversation_metrics",
-    [
-      1
-    ],
-    {
-      "type_": "teste"
-    },
+    [1],
+    {"type_": "agent"},
     "GET",
     "/api/v2/accounts/1/reports/conversations/",
     False
@@ -1195,12 +1174,8 @@ CASOS = [
   [
     "reports",
     "outgoing_messages_count",
-    [
-      1
-    ],
-    {
-      "group_by": "teste"
-    },
+    [1],
+    {"group_by": "agent"},
     "GET",
     "/api/v2/accounts/1/reports/outgoing_messages_count",
     False
