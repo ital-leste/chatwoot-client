@@ -37,11 +37,12 @@ class Contact:
     identifier: str | None | _NaoInformado = _NAO_INFORMADO
     blocked: bool | _NaoInformado = _NAO_INFORMADO
     avatar_url: str | None | _NaoInformado = _NAO_INFORMADO
+    avatar: str | None | _NaoInformado = _NAO_INFORMADO
     additional_attributes: Mapping[str, Any] | None | _NaoInformado = _NAO_INFORMADO
     custom_attributes: Mapping[str, Any] | None | _NaoInformado = _NAO_INFORMADO
 
     def __post_init__(self) -> None:
-        for nome in ("name", "email", "phone_number", "identifier", "avatar_url"):
+        for nome in ("name", "email", "phone_number", "identifier", "avatar_url", "avatar"):
             valor = getattr(self, nome)
             if valor is _NAO_INFORMADO or valor is None:
                 continue

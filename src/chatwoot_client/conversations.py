@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from .enums import ConversationPriority, ConversationStatus
 from .models import ConversationCreate, FilterCondition
 from .models.filters import _serializar_filtros
+from .models.application import AUSENTE, _Ausente
 
 if TYPE_CHECKING:
     from .client import CWClient
@@ -184,21 +185,27 @@ class ConversationsResource:
         )
 
     def update(
-        self,
-        account_id: int,
-        conversation_id: int,
-        *,
-        priority: ConversationPriority | None,
+        self, account_id: int, conversation_id: int, *,
+        priority: ConversationPriority | None | _Ausente = AUSENTE,
+        sla_policy_id: int | _Ausente = AUSENTE,
     ) -> dict[str, Any]:
-        """PATCH: prioridade fornecida; None explícito remove prioridade."""
+        """PATCH com prioridade opcional e SLA; None explícito limpa prioridade."""
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(conversation_id, "conversation_id")
-        dados = {"priority": self._validar_prioridade(priority)}
+        dados: dict[str, Any] = {}
+        if priority is not AUSENTE:
+            dados["priority"] = self._validar_prioridade(priority)
+        if sla_policy_id is not AUSENTE:
+            self._client._validar_id(sla_policy_id, "sla_policy_id")
+            dados["sla_policy_id"] = sla_policy_id
+        if not dados:
+            raise ValueError("update exige priority ou sla_policy_id explícito.")
         caminho = f"api/v1/accounts/{account_id}/conversations/{conversation_id}"
         resposta = self._client._patch(caminho, dados=dados)
         return self._client._exigir_objeto(
-            resposta, operacao="atualizar conversa", caminho=caminho
+            resposta, operacao="atualizar conversa", caminho=caminho,
         )
+
 
     def set_status(
         self,
