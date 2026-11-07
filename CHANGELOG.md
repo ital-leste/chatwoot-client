@@ -1,5 +1,11 @@
 # Changelog
 
+## Homolog — campos opcionais de mensagem (07/11/2026)
+
+- `TextMessage` envia `content_type`, `content_attributes`, `campaign_id` e `template_params` sem alterar defaults do envio anterior.
+- `MediaMessage` inclui `content_type` e valores escalares de `content_attributes` no multipart; objetos aninhados de formulário bloqueados antes do HTTP.
+- Testes de payload JSON/multipart, valores inválidos e mutações posteriores à construção do contrato.
+
 ## Homolog — conclusão dos contratos Application API 4.19.0 (07/11/2026)
 
 - 11 dataclasses administrativas novas; 17 métodos complexos convertidos para contratos, mais atualização do perfil com envelope `profile`.

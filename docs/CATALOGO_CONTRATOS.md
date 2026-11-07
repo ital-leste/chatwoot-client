@@ -46,6 +46,15 @@ Os contratos já existentes `Contact`, `ConversationCreate`, `FilterCondition`,
 | Mensagens | `update_status(..., status="sent"|"delivered"|"read"|"failed")` |
 | Consultas | Ordenação, filtros, páginas e IDs por argumentos tipados |
 
+## Mensagens com campos opcionais oficiais
+
+`TextMessage` aceita `content_type: MessageContentType`,
+`content_attributes: Mapping[str, Any]`, `campaign_id: int` e
+`template_params: Mapping[str, Any]` além de conteúdo, direção e privacidade.
+`MediaMessage` aceita `content_type` e `content_attributes` de valores
+escalares em multipart. O uso de conteúdo estruturado em canais reais requer
+homologação por tipo de mensagem.
+
 ## Variabilidade intencional da API
 
 Certos campos oficiais dependem do canal, de uma configuração de conta ou da

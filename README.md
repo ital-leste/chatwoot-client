@@ -94,7 +94,7 @@ with CWClient("https://chatwoot.exemplo", "SEU_TOKEN") as cw:
     enviada = cw.messages.send_text(1, 9, TextMessage("Olá!"))
 ```
 
-`FilterCondition` é usado por `contacts.filter()` e `conversations.filter()`. Para enviar anexos, utilize `MediaMessage` e `Attachment`, com suporte a caminhos, bytes, streams e URLs HTTPS sujeitas às verificações do cliente. Veja o [guia de utilização](docs/GUIA_UTILIZACAO.md).
+`FilterCondition` é usado por `contacts.filter()` e `conversations.filter()`. Para enviar anexos, utilize `MediaMessage` e `Attachment`, com suporte a caminhos, bytes, streams e URLs HTTPS sujeitas às verificações do cliente. `TextMessage` também suporta os campos oficiais `content_type`, `content_attributes`, `campaign_id` e `template_params`. No multipart, `MediaMessage` suporta `content_type` e atributos escalares, codificados em campos de formulário. Veja o [guia de utilização](docs/GUIA_UTILIZACAO.md).
 
 ## Saídas e erros
 

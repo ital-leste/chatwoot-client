@@ -349,3 +349,28 @@ para escrita na instalação real. `profile.update()` serializa `{"profile": {..
 `campaigns.create/update()` mantém `{"campaign": {...}}` com campos variáveis.
 `account.update_form()` e `profile.update_multipart()` são caminhos alternativos de
 transporte para endpoints já existentes, não novas rotas.
+
+## Mensagens com conteúdo estruturado ou template
+
+```python
+from chatwoot_client import TextMessage, MessageContentType
+
+cw.messages.send_text(
+    1, 2, TextMessage(
+        "Selecione o serviço",
+        content_type=MessageContentType.INPUT_SELECT,
+        content_attributes={"items": [{"title": "GNV", "value": "gnv"}]},
+        campaign_id=5,
+        template_params={"name": "Maria"},
+    ),
+)
+```
+
+`content_attributes` e `template_params` são copiados e validados como JSON,
+sem DTOs de resposta. O formato interno depende do tipo de mensagem e do canal:
+o cliente não impõe semântica de cartões/templates além da estrutura JSON oficial.
+No envio `MediaMessage` multipart, `content_type` é aceito e atributos planos
+de `content_attributes` são serializados com nomes `content_attributes[chave]`;
+atributos aninhados são rejeitados antes do POST, pois a codificação genérica de
+objetos complexos em form-data não é especificada por este contrato.
+A entrega e renderização reais continuam dependentes do canal.
