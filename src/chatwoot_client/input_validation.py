@@ -18,3 +18,16 @@ def validar_opcao(valor: str, permitidos: tuple[str, ...], nome: str) -> str:
     if not isinstance(valor, str) or valor not in permitidos:
         raise ValueError(f"{nome} inválido; permitidos: {', '.join(permitidos)}.")
     return valor
+
+
+def validar_chaves_json(valor: object) -> None:
+    """Rejeita chaves não textuais em qualquer nível do JSON (sem coerção)."""
+    from collections.abc import Mapping
+    if isinstance(valor, Mapping):
+        for chave, filho in valor.items():
+            if not isinstance(chave, str):
+                raise ValueError("JSON requer chaves string em todos os níveis.")
+            validar_chaves_json(filho)
+    elif isinstance(valor, (list, tuple)):
+        for filho in valor:
+            validar_chaves_json(filho)

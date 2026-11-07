@@ -21,6 +21,7 @@ from .labels import LabelsResource
 from .messages import MessagesResource
 from .profile import ProfileResource
 from .transport import executar
+from .input_validation import validar_chaves_json
 from .audit_logs import AuditLogsResource
 from .account_agentbots import AccountAgentBotsResource
 from .canned_responses import CannedResponsesResource
@@ -162,6 +163,7 @@ class CWClient:
             if not isinstance(dados, Mapping) or any(not isinstance(k, str) for k in dados):
                 raise ValueError("dados deve ser objeto JSON com chaves de texto.")
             try:
+                validar_chaves_json(dados)
                 json.dumps(dict(dados), allow_nan=False)
             except (TypeError, ValueError, OverflowError, RecursionError) as exc:
                 raise ValueError("dados deve ser um objeto serializável em JSON.") from exc
