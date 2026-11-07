@@ -17,3 +17,23 @@ def test_matriz_preserva_as_124_operacoes_e_75_caminhos():
     assert len(caminhos) == 75
     assert all(item[5] and item[6] and item[7] for item in linhas)
     assert {item[7] for item in linhas} == {"Pendente por rota"}
+
+
+def test_inventario_de_entradas_corresponde_a_matriz():
+    raiz = Path(__file__).resolve().parents[1]
+    matriz = (raiz / "docs" / "MATRIZ_API.md").read_text(encoding="utf-8")
+    entradas = (raiz / "docs" / "ESPECIFICACAO_ENTRADAS.md").read_text(
+        encoding="utf-8"
+    )
+    m = [
+        [c.strip() for c in line.split("|")[1:-1]]
+        for line in matriz.splitlines()
+        if line.startswith("| ") and "`/api/" in line
+    ]
+    e = [
+        [c.strip() for c in line.split("|")[1:-1]]
+        for line in entradas.splitlines()
+        if line.startswith("| ") and "`/api/" in line
+    ]
+    assert len(m) == len(e) == 124
+    assert {(x[1], x[2]) for x in m} == {(x[0], x[1]) for x in e}

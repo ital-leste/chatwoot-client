@@ -4,6 +4,13 @@ Data-base: 2026-11-07. Branch de trabalho: `homolog`.
 
 ## Etapa A — inventário e rastreabilidade
 
+Além da matriz, o [inventário de requisitos de entrada](ESPECIFICACAO_ENTRADAS.md)
+cobre os 124 pares método/rota e apresenta os campos marcados como obrigatórios
+na referência Swagger 4.19.0, com parâmetros de consulta, esquema de requestBody
+e formatos MIME. O inventário não substitui as regras de validação dos controladores
+nem comprova execução integrada.
+
+
 - Fonte de verdade: `chatwoot/chatwoot@v4.19.0/swagger/tag_groups/application_swagger.json`.
 - Matriz Python comparada por pares `(método HTTP, caminho)`.
 - Resultado: **124/124 pares**, **75 caminhos**, nenhuma rota ausente nem excedente.

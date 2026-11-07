@@ -124,6 +124,7 @@ continua distinta da execução de testes simulados.
 |---|---|
 | [Guia de utilização](docs/GUIA_UTILIZACAO.md) | Exemplos e assinaturas modeladas |
 | [Matriz da API](docs/MATRIZ_API.md) | Verbos, rotas e recursos |
+| [Entradas por rota](docs/ESPECIFICACAO_ENTRADAS.md) | Query obrigatória, requestBody e MIME declarados no Swagger 4.19.0 |
 | [Arquitetura](docs/ARQUITETURA.md) | Responsabilidades e limites |
 | [Contratos HTTP](docs/CONTRATOS_HTTP.md) | Requisições, respostas e falhas |
 | [Autenticação](docs/AUTENTICACAO.md) | Credenciais e modos de autenticação |
