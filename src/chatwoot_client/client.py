@@ -56,6 +56,10 @@ class ErroAPIChatwoot(RuntimeError):
         self.status_http = status_http
 
 
+class ErroConexaoChatwoot(ErroAPIChatwoot):
+    """Falha de transporte HTTPX, distinta de erro HTTP ou formato de resposta."""
+
+
 class CWClient:
     """Client HTTP da API Chatwoot com respostas JSON sem modelos externos.
 
@@ -174,7 +178,7 @@ class CWClient:
                 formulario=formulario,
             )
         except httpx.RequestError:
-            raise ErroAPIChatwoot(
+            raise ErroConexaoChatwoot(
                 f"Falha de conexão ao chamar {metodo} {caminho}.",
                 caminho=caminho,
             ) from None
