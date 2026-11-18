@@ -7,7 +7,7 @@ Documentação-fonte: https://github.com/chatwoot/chatwoot/blob/v4.19.0/swagger/
 - Sessão: httpx.Client síncrono e context manager, com timeout configurável.
 - Requisições: JSON quando há data, multipart/form-data no envio de anexos. Qualquer `dados` enviado como objeto JSON é verificado quanto a chaves de texto **em todos os níveis** e serialização JSON válida **antes do HTTP**, inclusive em recursos que seguem payloads da API sem contrato próprio.
 - Respostas: preservação do JSON original. HTTP 204 e sucesso sem corpo retornam None.
-- Erros: ErroAPIChatwoot informa caminho e status_http, mas nunca o corpo completo nem o token.
+- Erros: ErroAPIChatwoot informa caminho e status_http; erros HTTP expõem retry_after (segundos numéricos) e request_id seguro quando presentes. ErroFormatoChatwoot distingue respostas inválidas de falhas de transporte; validações estruturais posteriores à decodificação podem não conhecer o status original. Nenhum erro inclui corpo completo, token ou cabeçalhos brutos.
 - Paginação: sem agregação automática; envelopes, contadores e cursores permanecem intactos.
 - Retry: ausente em escritas. Um timeout após POST pode significar resultado indeterminado.
 - Entradas: parâmetros Python nomeados e tipados para casos simples, contratos imutáveis para estruturas mais complexas. **Sem contrato próprio, enviar os campos e a estrutura previstos pela Application API**, normalmente via `Mapping[str, Any]`, sem remodelar arbitrariamente o payload.

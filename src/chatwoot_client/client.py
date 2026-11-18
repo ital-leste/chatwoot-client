@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import json
+import re
 from collections.abc import Mapping, Sequence
 from typing import Any, BinaryIO
 from urllib.parse import urlsplit
@@ -50,10 +51,14 @@ class ErroAPIChatwoot(RuntimeError):
         *,
         caminho: str,
         status_http: int | None = None,
+        retry_after: int | None = None,
+        request_id: str | None = None,
     ) -> None:
         super().__init__(mensagem)
         self.caminho = caminho
         self.status_http = status_http
+        self.retry_after = retry_after
+        self.request_id = request_id
 
 
 class ErroConexaoChatwoot(ErroAPIChatwoot):
@@ -190,9 +195,23 @@ class CWClient:
             resposta.raise_for_status()
         except httpx.HTTPStatusError as erro:
             status = erro.response.status_code
+            cabecalhos = erro.response.headers
+            retry_raw = cabecalhos.get("Retry-After", "")
+            # O servidor também pode enviar HTTP-date; não inferir segundos
+            # nesse caso. Nenhum cabeçalho bruto vai à mensagem de erro.
+            retry_after = (
+                int(retry_raw) if retry_raw.isascii()
+                and retry_raw.isdecimal() and len(retry_raw) <= 10 else None
+            )
+            request_raw = cabecalhos.get("X-Request-Id", "")
+            request_id = (
+                request_raw if re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", request_raw)
+                else None
+            )
             raise ErroAPIChatwoot(
                 f"Chatwoot respondeu HTTP {status} para {metodo} {caminho}.",
                 caminho=caminho, status_http=status,
+                retry_after=retry_after, request_id=request_id,
             ) from None
         if resposta.status_code == 204 or not resposta.content:
             return None
