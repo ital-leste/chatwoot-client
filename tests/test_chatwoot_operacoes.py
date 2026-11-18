@@ -69,7 +69,11 @@ def cliente_mock(handler: Callable[[httpx.Request], httpx.Response]) -> CWClient
 )
 def test_novos_endpoints_preservam_http_e_json(call, method, path, body, query):
     chamadas = []
-    response = {"meta": {"extra": "preservado"}, "payload": {"novo": 5}}
+    response = (
+        {"id": 77, "meta": {"extra": "preservado"}}
+        if path.endswith("/messages")
+        else {"meta": {"extra": "preservado"}, "payload": {"novo": 5}}
+    )
 
     def handler(request):
         chamadas.append(request)

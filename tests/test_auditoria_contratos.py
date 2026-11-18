@@ -17,7 +17,14 @@ from chatwoot_client import (
 def _cliente(chamadas: list[httpx.Request]) -> CWClient:
     def handler(req: httpx.Request) -> httpx.Response:
         chamadas.append(req)
-        return httpx.Response(200, json={"payload": {"id": 42}})
+        return httpx.Response(
+            200,
+            json=(
+                {"payload": []}
+                if req.url.path.endswith("/messages")
+                else {"payload": {"id": 42}}
+            ),
+        )
     cw = CWClient("https://chatwoot.example", "token-teste")
     headers = dict(cw._http.headers)
     cw._http.close()

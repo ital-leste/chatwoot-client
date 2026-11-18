@@ -48,15 +48,41 @@ class MessagesResource:
             if value is not None
         }
         response = self._client._solicitar_json("GET", path, parametros=parameters)
-        return self._client._exigir_objeto(
+        dados = self._client._exigir_objeto(
             response,
             operacao="listar mensagens",
             caminho=path,
         )
+        mensagens = dados.get("payload")
+        if not isinstance(mensagens, list) or any(
+            not isinstance(item, Mapping)
+            or type(item.get("id")) is not int
+            or item["id"] <= 0
+            for item in mensagens
+        ):
+            from .client import ErroAPIChatwoot
+
+            raise ErroAPIChatwoot(
+                "Chatwoot retornou lista de mensagens sem payload ou IDs válidos.",
+                caminho=path,
+            )
+        return dados
 
     @staticmethod
     def _caminho_mensagens(account_id: int, conversation_id: int) -> str:
         return f"api/v1/accounts/{account_id}/conversations/{conversation_id}/messages"
+
+    @staticmethod
+    def _exigir_mensagem_criada(dados: dict[str, Any], *, caminho: str) -> dict[str, Any]:
+        """Sucesso de envio precisa confirmar a criação no Chatwoot por ID."""
+        if type(dados.get("id")) is not int or dados["id"] <= 0:
+            from .client import ErroAPIChatwoot
+
+            raise ErroAPIChatwoot(
+                "Chatwoot não confirmou a criação da mensagem com um ID válido.",
+                caminho=caminho,
+            )
+        return dados
 
     def send_text(
         self, account_id: int, conversation_id: int, message: TextMessage,
@@ -68,8 +94,11 @@ class MessagesResource:
             raise TypeError("message deve ser TextMessage.")
         caminho = self._caminho_mensagens(account_id, conversation_id)
         response = self._client._post(caminho, dados=serialize_text(message))
-        return self._client._exigir_objeto(
-            response, operacao="enviar texto", caminho=caminho,
+        return self._exigir_mensagem_criada(
+            self._client._exigir_objeto(
+                response, operacao="enviar texto", caminho=caminho,
+            ),
+            caminho=caminho,
         )
 
     def send_media(
@@ -93,8 +122,11 @@ class MessagesResource:
             response = self._client._post(
                 caminho, dados=serialize_media(message), arquivos=arquivos,
             )
-        return self._client._exigir_objeto(
-            response, operacao="enviar mídia", caminho=caminho,
+        return self._exigir_mensagem_criada(
+            self._client._exigir_objeto(
+                response, operacao="enviar mídia", caminho=caminho,
+            ),
+            caminho=caminho,
         )
 
 
