@@ -3,8 +3,8 @@
 Documentação-fonte: https://github.com/chatwoot/chatwoot/blob/v4.19.0/swagger/tag_groups/application_swagger.json
 
 - URL: raiz da instalação, podendo incluir prefixo de proxy. Não aceita credenciais, query ou fragmentos.
-- Autenticação: Authorization: Bearer TOKEN por padrão, ou auth_mode="api_access_token" para cabeçalho legado.
-- Sessão: httpx.Client síncrono e context manager, com timeout configurável.
+- Autenticação: Authorization: Bearer TOKEN por padrão, ou auth_mode="api_access_token" para cabeçalho legado. A URL-base aceita HTTP(S), prefixo e portas válidas; rejeita host ausente, porta inválida, credenciais, query e fragmento.
+- Sessão: httpx.Client síncrono e context manager, com timeout numérico positivo (padrão 30 s) ou `httpx.Timeout` granular nativo. Não há configuração de retry implícito.
 - Requisições: JSON quando há data, multipart/form-data no envio de anexos. Qualquer `dados` enviado como objeto JSON é verificado quanto a chaves de texto **em todos os níveis** e serialização JSON válida **antes do HTTP**, inclusive em recursos que seguem payloads da API sem contrato próprio.
 - Respostas: preservação do JSON original. HTTP 204 e sucesso sem corpo retornam None.
 - Erros: ErroAPIChatwoot informa caminho e status_http; erros HTTP expõem retry_after (segundos numéricos) e request_id seguro quando presentes. ErroFormatoChatwoot distingue respostas inválidas de falhas de transporte; validações estruturais posteriores à decodificação podem não conhecer o status original. Nenhum erro inclui corpo completo, token ou cabeçalhos brutos.

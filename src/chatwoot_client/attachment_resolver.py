@@ -25,11 +25,23 @@ class ErroRedirecionamentoAnexoChatwoot(ErroAnexoChatwoot):
 
 
 def _validar_url_publica(url: str, allowed_hosts: frozenset[str] | None) -> None:
-    parsed = urlsplit(url)
-    host = parsed.hostname
-    if parsed.scheme != "https" or not host or parsed.username or parsed.password or parsed.fragment:
+    try:
+        parsed = urlsplit(url)
+        host = parsed.hostname
+        porta = parsed.port
+    except ValueError:
+        raise ErroAnexoChatwoot("URL de anexo contém host ou porta inválidos.") from None
+    if (
+        parsed.scheme != "https"
+        or not host
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.fragment
+        or parsed.netloc.endswith(":")
+        or any(ch.isspace() or ch == "\\" for ch in parsed.netloc)
+    ):
         raise ErroAnexoChatwoot("URL de anexo inválida: exige HTTPS.")
-    if parsed.port not in (None, 443):
+    if porta not in (None, 443):
         raise ErroAnexoChatwoot("URL de anexo deve usar a porta HTTPS padrão.")
     host = host.lower().rstrip(".")
     if host == "localhost" or host.endswith((".localhost", ".local", ".internal")):

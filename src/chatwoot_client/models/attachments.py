@@ -30,8 +30,12 @@ class Attachment:
             if not source.strip():
                 raise ValueError("source não pode ser vazio.")
             if "://" in source:
-                url = urlsplit(source)
-                if url.scheme != "https" or not url.hostname or url.username or url.password or url.fragment:
+                try:
+                    url = urlsplit(source)
+                    host = url.hostname
+                except ValueError:
+                    raise ValueError("URL de anexo contém host inválido.") from None
+                if url.scheme != "https" or not host or url.username or url.password or url.fragment:
                     raise ValueError("URLs de anexos devem ser HTTPS, sem credenciais ou fragmento.")
                 nome = Path(unquote(url.path)).name
             else:

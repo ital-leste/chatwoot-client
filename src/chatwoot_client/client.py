@@ -80,30 +80,42 @@ class CWClient:
     """
 
     def __init__(
-        self, base_url: str, api_token: str, timeout: float = 30.0,
+        self, base_url: str, api_token: str, timeout: float | httpx.Timeout = 30.0,
         *, auth_mode: str = "bearer",
     ) -> None:
         if not isinstance(base_url, str) or not base_url.strip():
             raise ErroConfiguracaoChatwoot("base_url deve ser URL http(s) não vazia.")
         base_url = base_url.strip().rstrip("/")
-        partes_url = urlsplit(base_url)
+        try:
+            partes_url = urlsplit(base_url)
+            host = partes_url.hostname
+            porta = partes_url.port
+        except ValueError:
+            raise ErroConfiguracaoChatwoot("base_url contém host ou porta inválidos.") from None
         if (
             partes_url.scheme not in {"http", "https"}
-            or not partes_url.netloc
+            or not host
+            or porta == 0
+            or partes_url.netloc.endswith(":")
             or partes_url.username is not None
             or partes_url.password is not None
-            or partes_url.query
-            or partes_url.fragment
+            or any(ch.isspace() or ch == "\\" for ch in partes_url.netloc)
+            or any(ch in base_url for ch in ("?", "#", "\r", "\n", "\t"))
         ):
             raise ErroConfiguracaoChatwoot(
-                "base_url deve ser uma URL http(s) sem credenciais, "
+                "base_url deve ser uma URL http(s) válida sem credenciais, "
                 "query ou fragmento."
             )
         if not isinstance(api_token, str) or not api_token.strip():
             raise ErroConfiguracaoChatwoot("api_token é obrigatório.")
-        if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not math.isfinite(timeout) or timeout <= 0:
+        if not isinstance(timeout, httpx.Timeout) and (
+            isinstance(timeout, bool)
+            or not isinstance(timeout, (int, float))
+            or not math.isfinite(timeout)
+            or timeout <= 0
+        ):
             raise ErroConfiguracaoChatwoot(
-                "timeout deve ser um número positivo."
+                "timeout deve ser um número positivo ou httpx.Timeout."
             )
         if auth_mode not in {"bearer", "api_access_token"}:
             raise ErroConfiguracaoChatwoot("auth_mode inválido.")

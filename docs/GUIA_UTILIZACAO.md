@@ -2,6 +2,27 @@
 
 Instalação: `python -m pip install -e ".[test]"`. Validação: `python -m pytest -q`.
 
+## Conexão e timeouts
+
+O padrão de `CWClient(URL, TOKEN, timeout=30)` permanece em segundos, aplicado
+a todas as fases HTTP. Opcionalmente, passe um `httpx.Timeout` nativo para
+valores independentes de conexão, leitura, escrita e pool:
+
+```python
+import httpx
+
+with CWClient(URL, TOKEN, timeout=httpx.Timeout(
+    30.0, connect=5.0, read=60.0, write=15.0, pool=5.0,
+)) as cw:
+    resposta = cw.profile.get()
+```
+
+A configuração pertence ao consumidor; não há retry automático. `base_url`
+aceita HTTP ou HTTPS, porta explícita e prefixo de caminho (inclusive destinos
+locais para desenvolvimento). Hosts vazios, portas inválidas, credenciais,
+queries ou fragmentos são rejeitados como `ErroConfiguracaoChatwoot`.
+Os downloads externos de anexos continuam exigindo HTTPS público na porta 443.
+
 ## Importações públicas
 
 ```python
