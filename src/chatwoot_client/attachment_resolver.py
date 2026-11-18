@@ -50,9 +50,13 @@ def _validar_url_publica(url: str, allowed_hosts: frozenset[str] | None) -> None
 
 def _copiar_limitado(source: BinaryIO, dest: BinaryIO, limit: int) -> None:
     total = 0
-    while chunk := source.read(64 * 1024):
+    while True:
+        chunk = source.read(64 * 1024)
+        if chunk == b"":
+            break
+        # read() == None não é EOF: não enviar anexo parcialmente copiado.
         if not isinstance(chunk, bytes):
-            raise ErroAnexoChatwoot("O fluxo do anexo deve fornecer bytes.")
+            raise ErroAnexoChatwoot("O fluxo do anexo deve fornecer bytes; read() não pode retornar None.")
         total += len(chunk)
         if total > limit:
             raise ErroAnexoChatwoot("Anexo excede o limite de tamanho configurado.")

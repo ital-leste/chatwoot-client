@@ -125,6 +125,14 @@ cw.messages.send_media(
 
 O Chatwoot reconhece `is_voice_message` para áudio OGG no código-fonte 4.19.0; a entrega real depende da integração do canal. O marcador não é enviado para áudio comum.
 
+O contrato do Chatwoot 4.19.0 aceita até **150.000 caracteres** no conteúdo
+da mensagem. O SDK rejeita `TextMessage.content` e `MediaMessage.caption` acima
+desse limite antes de chamar HTTP; o limite é de caracteres Python, não bytes.
+Canais de entrega podem impor limites menores, que continuam sob responsabilidade
+da aplicação consumidora. Streams binários de anexos devem retornar `bytes`
+em `read()` e `b""` apenas no final; `None` é erro e impede o POST, mesmo
+se parte do conteúdo já tiver sido lida.
+
 ## Conversas e etiquetas
 
 ```python

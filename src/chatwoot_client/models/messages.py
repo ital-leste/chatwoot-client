@@ -11,6 +11,9 @@ from ..enums import MessageType, MessageContentType
 from ..input_validation import validar_chaves_json
 from .attachments import Attachment
 
+# Validação de Message no Chatwoot 4.19.0: maximum: 150_000.
+_LIMITE_CONTEUDO_CHATWOOT = 150_000
+
 
 def _validar_publicacao(message_type: MessageType, private: bool) -> None:
     if not isinstance(message_type, MessageType):
@@ -64,6 +67,8 @@ class TextMessage:
         _validar_opcionais(self)
         if not isinstance(self.content, str) or not self.content.strip():
             raise ValueError("TextMessage requer content não vazio.")
+        if len(self.content) > _LIMITE_CONTEUDO_CHATWOOT:
+            raise ValueError("TextMessage excede o limite de 150000 caracteres do Chatwoot.")
 
 
 @dataclass(frozen=True, slots=True)
@@ -85,6 +90,8 @@ class MediaMessage:
             raise ValueError("MediaMessage requer lista não vazia de Attachment.")
         if self.caption is not None and not isinstance(self.caption, str):
             raise TypeError("caption deve ser texto ou None.")
+        if self.caption is not None and len(self.caption) > _LIMITE_CONTEUDO_CHATWOOT:
+            raise ValueError("caption excede o limite de 150000 caracteres do Chatwoot.")
         if not isinstance(self.is_voice_message, bool):
             raise TypeError("is_voice_message deve ser bool.")
         if self.is_voice_message and (

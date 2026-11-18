@@ -15,6 +15,7 @@ Documentação-fonte: https://github.com/chatwoot/chatwoot/blob/v4.19.0/swagger/
 - Conversations: prioridade em enum; `priority=None` significa limpar explicitamente. Custom attributes usam `merge=True` por padrão para preservar as demais chaves; `merge=False` faz substituição total intencional.
 - Filtros avançados: `FilterCondition` reutilizado por Contacts e Conversations; cada recurso serializa em `payload` sem DTO de saída.
 - Saídas: JSON nativo do Chatwoot, com verificação de formato quando o endpoint o define. Nenhum DTO de saída obrigatório.
+- Mensagens: `TextMessage.content` e `MediaMessage.caption` respeitam o máximo de 150.000 caracteres validado em `Message` no Chatwoot 4.19.0. Fluxos de anexo com `read() is None` falham antes do POST, sem anexos truncados.
 
 A biblioteca não traduz respostas da API para DTOs obrigatórios. O servidor continua responsável por verificar permissões e validade de parâmetros específicos.
 
