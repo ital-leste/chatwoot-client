@@ -1,11 +1,11 @@
 """Cliente Python para a Application API Chatwoot 4.19.0."""
-from .client import CWClient, ErroAPIChatwoot, ErroConexaoChatwoot, ErroConfiguracaoChatwoot
+from .client import CWClient, ErroAPIChatwoot, ErroConexaoChatwoot, ErroFormatoChatwoot, ErroConfiguracaoChatwoot
 from .attachment_resolver import ErroAnexoChatwoot, ErroRedirecionamentoAnexoChatwoot
 from .models import Attachment, TextMessage, MediaMessage, LabelDefinition, Contact, ConversationCreate, FilterCondition
 from .enums import MimeType, MessageType, MessageContentType, ConversationStatus, ConversationPriority
 
 __all__ = [
-    "CWClient", "ErroAPIChatwoot", "ErroConexaoChatwoot", "ErroConfiguracaoChatwoot", "ErroAnexoChatwoot", "ErroRedirecionamentoAnexoChatwoot",
+    "CWClient", "ErroAPIChatwoot", "ErroConexaoChatwoot", "ErroFormatoChatwoot", "ErroConfiguracaoChatwoot", "ErroAnexoChatwoot", "ErroRedirecionamentoAnexoChatwoot",
     "Attachment", "TextMessage", "MediaMessage", "LabelDefinition", "Contact", "ConversationCreate", "FilterCondition",
     "MimeType", "MessageType", "MessageContentType", "ConversationStatus", "ConversationPriority",
     "ProfileInput", "AccountSettingsInput", "AgentBotInput", "AutomationRuleInput", "InboxSettingsInput", "CustomAttributeInput", "CustomFilterInput", "HelpCenterPortalInput", "HelpCenterCategoryInput", "HelpCenterArticleInput", "IntegrationHookInput",

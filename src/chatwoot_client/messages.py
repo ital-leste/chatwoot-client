@@ -60,9 +60,9 @@ class MessagesResource:
             or item["id"] <= 0
             for item in mensagens
         ):
-            from .client import ErroAPIChatwoot
+            from .client import ErroFormatoChatwoot
 
-            raise ErroAPIChatwoot(
+            raise ErroFormatoChatwoot(
                 "Chatwoot retornou lista de mensagens sem payload ou IDs válidos.",
                 caminho=path,
             )
@@ -76,9 +76,9 @@ class MessagesResource:
     def _exigir_mensagem_criada(dados: dict[str, Any], *, caminho: str) -> dict[str, Any]:
         """Sucesso de envio precisa confirmar a criação no Chatwoot por ID."""
         if type(dados.get("id")) is not int or dados["id"] <= 0:
-            from .client import ErroAPIChatwoot
+            from .client import ErroFormatoChatwoot
 
-            raise ErroAPIChatwoot(
+            raise ErroFormatoChatwoot(
                 "Chatwoot não confirmou a criação da mensagem com um ID válido.",
                 caminho=caminho,
             )

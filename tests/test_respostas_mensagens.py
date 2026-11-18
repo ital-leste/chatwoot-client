@@ -8,6 +8,7 @@ from chatwoot_client import (
     Attachment,
     CWClient,
     ErroAPIChatwoot,
+    ErroFormatoChatwoot,
     MediaMessage,
     MimeType,
     TextMessage,
@@ -37,7 +38,7 @@ def cliente_simulado(resposta: object, chamadas: list[httpx.Request]) -> CWClien
 @pytest.mark.parametrize("tipo", ["texto", "midia"])
 def test_publicacao_sem_id_inteiro_positivo_nao_e_sucesso(conteudo, tipo):
     chamadas: list[httpx.Request] = []
-    with cliente_simulado(conteudo, chamadas) as cliente, pytest.raises(ErroAPIChatwoot) as erro:
+    with cliente_simulado(conteudo, chamadas) as cliente, pytest.raises(ErroFormatoChatwoot) as erro:
         if tipo == "texto":
             cliente.messages.send_text(1, 2, TextMessage("Mensagem", private=True))
         else:
@@ -74,7 +75,7 @@ def test_publicacao_valida_preserva_campos_adicionais(tipo):
 ])
 def test_listagem_rejeita_payload_ou_identidade_invalidos(conteudo):
     chamadas: list[httpx.Request] = []
-    with cliente_simulado(conteudo, chamadas) as cliente, pytest.raises(ErroAPIChatwoot):
+    with cliente_simulado(conteudo, chamadas) as cliente, pytest.raises(ErroFormatoChatwoot):
         cliente.messages.list(1, 2)
     assert len(chamadas) == 1
 

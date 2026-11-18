@@ -4,7 +4,7 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from chatwoot_client import CWClient, ErroAPIChatwoot, ErroConexaoChatwoot
+from chatwoot_client import CWClient, ErroAPIChatwoot, ErroConexaoChatwoot, ErroFormatoChatwoot
 
 
 def cliente_falso(handler):
@@ -52,7 +52,8 @@ def test_estrutura_inesperada_sem_status_nao_e_transporte(operacao, retorno):
             cw.agents.list(1)
 
     erro = capturado.value
-    assert type(erro) is ErroAPIChatwoot
+    assert type(erro) is ErroFormatoChatwoot
+    assert isinstance(erro, ErroAPIChatwoot)
     assert not isinstance(erro, ErroConexaoChatwoot)
     assert erro.status_http is None
 
@@ -64,7 +65,8 @@ def test_json_invalido_nao_e_transporte():
     with cliente_falso(handler) as cw, pytest.raises(ErroAPIChatwoot) as capturado:
         cw.conversations.get(1, 2)
 
-    assert type(capturado.value) is ErroAPIChatwoot
+    assert type(capturado.value) is ErroFormatoChatwoot
+    assert isinstance(capturado.value, ErroAPIChatwoot)
     assert not isinstance(capturado.value, ErroConexaoChatwoot)
     assert capturado.value.status_http == 200
 
@@ -81,3 +83,17 @@ def test_erro_http_permanece_na_classe_original(status):
     assert type(erro) is ErroAPIChatwoot
     assert not isinstance(erro, ErroConexaoChatwoot)
     assert erro.status_http == status
+
+
+@pytest.mark.parametrize("status,conteudo", [
+    (204, b""), (200, b""), (200, b"null"),
+])
+def test_resposta_sem_objeto_e_classificada_como_formato(status, conteudo):
+    def handler(request):
+        return httpx.Response(status, content=conteudo)
+
+    with cliente_falso(handler) as cw, pytest.raises(ErroFormatoChatwoot) as capturado:
+        cw.conversations.get(1, 2)
+
+    assert isinstance(capturado.value, ErroAPIChatwoot)
+    assert not isinstance(capturado.value, ErroConexaoChatwoot)

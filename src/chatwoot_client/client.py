@@ -60,6 +60,10 @@ class ErroConexaoChatwoot(ErroAPIChatwoot):
     """Falha de transporte HTTPX, distinta de erro HTTP ou formato de resposta."""
 
 
+class ErroFormatoChatwoot(ErroAPIChatwoot):
+    """Resposta recebida sem o formato esperado; não é falha de transporte."""
+
+
 class CWClient:
     """Client HTTP da API Chatwoot com respostas JSON sem modelos externos.
 
@@ -195,7 +199,7 @@ class CWClient:
         try:
             return resposta.json()
         except ValueError:
-            raise ErroAPIChatwoot(
+            raise ErroFormatoChatwoot(
                 f"Chatwoot retornou JSON inválido para {metodo} {caminho}.",
                 caminho=caminho, status_http=resposta.status_code,
             ) from None
@@ -239,7 +243,7 @@ class CWClient:
         caminho: str,
     ) -> dict[str, Any]:
         if not isinstance(resposta, dict):
-            raise ErroAPIChatwoot(
+            raise ErroFormatoChatwoot(
                 f"Resposta inesperada ao {operacao}: era esperado um objeto JSON.",
                 caminho=caminho,
             )
@@ -253,7 +257,7 @@ class CWClient:
         caminho: str,
     ) -> list[Any]:
         if not isinstance(resposta, list):
-            raise ErroAPIChatwoot(
+            raise ErroFormatoChatwoot(
                 f"Resposta inesperada ao {operacao}: era esperada uma lista JSON.",
                 caminho=caminho,
             )
