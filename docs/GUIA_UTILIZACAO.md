@@ -36,6 +36,27 @@ with CWClient(URL, TOKEN, timeout=30) as cw:
     contatos = cw.contacts.list(1)
 ```
 
+### Paginação de mensagens (Chatwoot 4.19.0)
+
+`cw.messages.list(account_id, conversation_id)` consulta até 20 mensagens recentes.
+Os cursores são **IDs de mensagens**, não números de página:
+
+- `before=123`: até 20 mensagens com `id < 123` (histórico anterior).
+- `after=123`: até 100 mensagens com `id > 123` (mensagens posteriores).
+- `after=100, before=200`: até 1000 mensagens com `100 <= id < 200`
+  (intervalo; o limite inferior é inclusivo **somente quando ambos são informados**).
+
+`before` e `after` aceitam inteiros não negativos (inclusive 0). Quando os dois
+são fornecidos, `after` deve ser menor que `before`. O cliente rejeita cursores
+inválidos antes de fazer HTTP, mas não agrega ou percorre páginas automaticamente.
+O retorno mantém o objeto `{"meta": ..., "payload": [...]}` sem conversão.
+
+Para avançar manualmente no histórico, use o menor ID do `payload` como próximo
+`before`. O servidor filtra por ID e ordena por `created_at`: importações e
+mensagens retrodatadas podem causar lacunas na paginação; não presuma ordem
+estrita de IDs ou completude histórica sem validação adicional. Para conversas e
+contatos, `page` é um número de página positivo, não cursor de mensagem.
+
 ## Enviar mensagens e notas internas
 
 ```python

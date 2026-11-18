@@ -30,14 +30,19 @@ class MessagesResource:
     ) -> dict[str, Any]:
         """GET /api/v1/accounts/{account_id}/conversations/{conversation_id}/messages.
 
-        Os cursores ``before`` e ``after`` são IDs de mensagem; a resposta
-        conserva o envelope ``meta`` e ``payload`` sem juntar páginas.
+        Cursores são IDs de mensagem, e a resposta preserva ``meta/payload``.
+        Sem cursor: até 20 mensagens recentes; apenas ``before``: até 20
+        com ID menor; apenas ``after``: até 100 com ID maior.
+        Com ambos: intervalo [after, before), até 1000 mensagens (Chatwoot 4.19).
+        As consultas são independentes: não há paginação automática.
         """
         self._client._validar_id(account_id, "account_id")
         self._client._validar_id(conversation_id, "conversation_id")
         for nome, cursor in (("before", before), ("after", after)):
             if cursor is not None and (type(cursor) is not int or cursor < 0):
                 raise ValueError(f"{nome} deve ser inteiro não negativo quando informado.")
+        if before is not None and after is not None and after >= before:
+            raise ValueError("after deve ser menor que before ao consultar um intervalo.")
         path = (
             f"api/v1/accounts/{account_id}/conversations/"
             f"{conversation_id}/messages"
