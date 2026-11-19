@@ -30,7 +30,8 @@ from chatwoot_client import (
     CWClient, TextMessage, MediaMessage, Attachment,
     MimeType, MessageType, ConversationStatus, ConversationPriority,
     Contact, ConversationCreate, FilterCondition,
-    LabelDefinition, ErroAPIChatwoot, ErroAnexoChatwoot,
+    LabelDefinition, ErroAPIChatwoot, ErroConexaoChatwoot,
+    ErroFormatoChatwoot, ErroAnexoChatwoot,
 )
 ```
 
@@ -293,7 +294,7 @@ with CWClient(URL, TOKEN) as cw:
 
 A interface de entrada usa parâmetros nomeados tipados em operações simples e contratos de domínio quando há estrutura ou validações que os justificam. Não forneça dicionários onde a operação exige `TextMessage`, `MediaMessage`, `LabelDefinition`, `Contact`, `ConversationCreate` ou `FilterCondition`. Recursos ainda não modelados continuam espelhando a API com `Mapping`.
 
-Erros de conexão, HTTP ou JSON inválido geram `ErroAPIChatwoot`, sem vazar dados de resposta. A confirmação da API não representa confirmação de entrega WhatsApp. Não há retry implícito de POST/PATCH/DELETE.
+Falhas de transporte geram `ErroConexaoChatwoot`. Respostas JSON ou estruturas inválidas geram `ErroFormatoChatwoot`. Ambas são subclasses de `ErroAPIChatwoot`. Erros HTTP informam `status_http` e podem incluir `retry_after` numérico e `request_id` sanitizado. Uma falha de transporte ou de formato após um envio pode deixar seu resultado indeterminado. Confirme o estado no Chatwoot antes de repetir a escrita. O ID da mensagem criada confirma o registro no Chatwoot. A entrega no canal externo precisa de confirmação própria.
 
 ## Revisão contratual 07/11/2026 — operações administrativas
 

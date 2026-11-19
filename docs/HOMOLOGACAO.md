@@ -37,6 +37,9 @@ Os testes usam `httpx.MockTransport` e não podem enviar mensagens reais, exclui
 22. Rejeitar payloads JSON genéricos não serializáveis, com `NaN` ou chaves de tipo incorreto, antes de HTTP, sem exigir dataclass.
 23. Confirmar que `toggle_priority()` exige `priority` explícito; validar novamente `message.content` em `ConversationCreate` mesmo após mutação de atributos internos.
 
+24. Distinguir erro HTTP, falha de transporte e erro de formato após decodificar o JSON. Verificar `retry_after` e `request_id` com valores aceitos e rejeitados, e exigir IDs válidos no histórico e no retorno de publicações.
+25. Testar timeouts granulares, URL-base com prefixo e rejeição de URL inválida, intervalo inválido de cursores, limite de conteúdo e stream incompleto antes do POST.
+
 ## Homologação integrada posterior
 
 Registrar versão/edição da instalação Chatwoot, URL e permissões, sem tokens em relatórios. Executar leituras reais primeiro. Qualquer POST, PATCH ou DELETE real deve ser autorizado por categoria e usar somente dados de teste, com verificação posterior do estado no dashboard.

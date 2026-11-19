@@ -79,32 +79,35 @@ with CWClient("https://chatwoot.exemplo", "SEU_TOKEN") as cw:
     criada = cw.conversations.create(
         1, ConversationCreate(source_id="origem-do-canal", inbox_id=1, contact_id=42)
     )
-    cw.conversations.set_status(1, 9, ConversationStatus.PENDING)
-    cw.conversations.update(1, 9, priority=ConversationPriority.HIGH)
+    conversa_id = criada["id"]
+    cw.conversations.set_status(1, conversa_id, ConversationStatus.PENDING)
+    cw.conversations.update(1, conversa_id, priority=ConversationPriority.HIGH)
 
     # Preserva as outras chaves: merge=True é o padrão do cliente.
     cw.conversations.update_custom_attributes(
-        1, 9, custom_attributes={"interesse": "gnv"}
+        1, conversa_id, custom_attributes={"interesse": "gnv"}
     )
 
     filtro = FilterCondition(
         attribute_key="status", filter_operator="equal_to", values=["pending"]
     )
     filtradas = cw.conversations.filter(1, [filtro])
-    enviada = cw.messages.send_text(1, 9, TextMessage("Olá!"))
+    enviada = cw.messages.send_text(1, conversa_id, TextMessage("Olá!"))
 ```
 
 `FilterCondition` é usado por `contacts.filter()` e `conversations.filter()`. Para enviar anexos, utilize `MediaMessage` e `Attachment`, com suporte a caminhos, bytes, streams e URLs HTTPS sujeitas às verificações do cliente. `TextMessage` também suporta os campos oficiais `content_type`, `content_attributes`, `campaign_id` e `template_params`. No multipart, `MediaMessage` suporta `content_type` e atributos escalares, codificados em campos de formulário. Veja o [guia de utilização](docs/GUIA_UTILIZACAO.md).
 
 ## Saídas e erros
 
-Cada método retorna **o JSON nativo da API** (`dict`, `list` ou `None` quando não existe corpo). Os envelopes variam conforme o recurso e não são normalizados:
+Os recursos preservam o JSON nativo da API depois das validações aplicáveis. Uma operação que admite sucesso sem corpo pode retornar `None`. Os envelopes variam por recurso:
 
 - `contacts.list()` → `{"meta": {...}, "payload": [...]}`
 - `conversations.list()` → `{"data": {"meta": {...}, "payload": [...]}}`
 - `canned_responses.list()` → `[...]`
 
-Paginação, cursores e metadados são preservados; não há agregação automática de páginas. Falhas HTTP, de conexão ou de JSON geram `ErroAPIChatwoot`, que informa o caminho e, quando disponível, o status HTTP, sem incluir o corpo completo nem o token na mensagem de erro. **Escritas não são repetidas automaticamente após timeout.**
+`messages.list()` exige um `payload` com IDs válidos. `send_text()` e `send_media()` exigem o ID da mensagem criada. A biblioteca preserva cursores e metadados e deixa a agregação de páginas a cargo do consumidor.
+
+Falhas de transporte geram `ErroConexaoChatwoot`. Respostas JSON ou estruturas inválidas geram `ErroFormatoChatwoot`. Ambas são subclasses de `ErroAPIChatwoot`. Erros HTTP informam `status_http` e podem incluir `retry_after` numérico e `request_id` sanitizado. Uma falha de transporte ou de formato após um envio pode deixar seu resultado indeterminado. Confirme o estado no Chatwoot antes de repetir a escrita. A biblioteca não faz retry automático. Consulte os [contratos HTTP](docs/CONTRATOS_HTTP.md).
 
 ## Organização e documentação
 

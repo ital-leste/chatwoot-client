@@ -1,5 +1,12 @@
 # Changelog
 
+## Homolog — contratos de transporte e mensagens (19/11/2026)
+
+- Distingue falhas de transporte, respostas HTTP de erro e respostas de formato inválido. Expõe `retry_after` e `request_id` seguros quando disponíveis.
+- Valida o envelope e os IDs do histórico de mensagens e exige confirmação de criação por ID no envio de texto ou mídia.
+- Valida intervalos de cursores e o limite de conteúdo. Rejeita streams incompletos antes do upload.
+- Valida a URL-base e aceita `httpx.Timeout` granular, preservando o timeout numérico.
+
 ## Homolog — campos opcionais de mensagem (07/11/2026)
 
 - `TextMessage` envia `content_type`, `content_attributes`, `campaign_id` e `template_params` sem alterar defaults do envio anterior.

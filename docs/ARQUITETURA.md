@@ -52,7 +52,7 @@ A API devolve arrays JSON em listagens e objetos JSON nas escritas. O cliente co
 
 ## Segurança, erros e concorrência
 
-`_request` é a única fronteira de execução HTTP, sem retry automático de escrita. Erros HTTP/JSON são convertidos em `ErroAPIChatwoot` sem expor tokens ou corpos sensíveis. HTTP 204 e sucesso sem corpo retornam `None`. Não são retornados objetos `httpx.Response` brutos.
+`_request` centraliza as chamadas à Application API. O transporte representa HTTP 204 e sucesso sem corpo como `None`. Os recursos aplicam a validação do retorno conforme seu contrato. A hierarquia de erros distingue HTTP, transporte e formato. Consulte os [contratos HTTP](CONTRATOS_HTTP.md) para os detalhes e a política de retry.
 
 Anexos por URL exigem HTTPS, DNS público e porta 443, sem credenciais nem redirecionamentos automáticos; `allowed_hosts` limita destinos. Downloads são feitos em cliente separado com `trust_env=False`, nunca com o token Chatwoot. O filtro DNS não substitui egress/allowlist de rede. Tamanho máximo padrão de 25 MiB por anexo.
 
