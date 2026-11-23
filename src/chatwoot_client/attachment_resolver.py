@@ -77,7 +77,26 @@ def _copiar_limitado(source: BinaryIO, dest: BinaryIO, limit: int) -> None:
         raise ErroAnexoChatwoot("Anexo vazio.")
 
 
-def _resolver_url(url: str, dest: BinaryIO, limit: int, timeout: float) -> None:
+def _validar_midia_remota(tipo_declarado: str, cabecalho: str, primeiros_bytes: bytes) -> None:
+    """Rejeita HTML e imagens remotas incompatíveis com o MIME declarado."""
+    tipo = tipo_declarado.split(";", 1)[0].strip().lower()
+    recebido = cabecalho.split(";", 1)[0].strip().lower()
+    if recebido in {"text/html", "application/xhtml+xml"}:
+        raise ErroAnexoChatwoot("Servidor de mídia retornou HTML, não um anexo.")
+    assinaturas = {
+        "image/png": lambda b: b.startswith(bytes.fromhex("89504e470d0a1a0a")),
+        "image/jpeg": lambda b: b.startswith(bytes.fromhex("ffd8ff")),
+        "image/gif": lambda b: b.startswith((b"GIF87a", b"GIF89a")),
+        "image/webp": lambda b: len(b) >= 12 and b[:4] == b"RIFF" and b[8:12] == b"WEBP",
+    }
+    if tipo in assinaturas and (
+        recebido not in {tipo, "application/octet-stream", ""}
+        or not assinaturas[tipo](primeiros_bytes)
+    ):
+        raise ErroAnexoChatwoot("Conteúdo remoto incompatível com o tipo de imagem declarado.")
+
+
+def _resolver_url(url: str, dest: BinaryIO, limit: int, timeout: float, mime_type: str) -> None:
     try:
         # Cliente separado: token do Chatwoot nunca é enviado ao host da mídia.
         with httpx.Client(timeout=timeout, follow_redirects=False, trust_env=False) as web:
@@ -94,13 +113,17 @@ def _resolver_url(url: str, dest: BinaryIO, limit: int, timeout: float) -> None:
                 if size and size.isdecimal() and int(size) > limit:
                     raise ErroAnexoChatwoot("Anexo excede o limite de tamanho configurado.")
                 count = 0
+                primeiros_bytes = b""
                 for chunk in response.iter_bytes(64 * 1024):
+                    if len(primeiros_bytes) < 16:
+                        primeiros_bytes += chunk[:16 - len(primeiros_bytes)]
                     count += len(chunk)
                     if count > limit:
                         raise ErroAnexoChatwoot("Anexo excede o limite de tamanho configurado.")
                     dest.write(chunk)
                 if count == 0:
                     raise ErroAnexoChatwoot("Anexo remoto vazio.")
+                _validar_midia_remota(mime_type, response.headers.get("content-type", ""), primeiros_bytes)
     except httpx.HTTPError:
         raise ErroAnexoChatwoot("Falha no download HTTPS do anexo.") from None
 
@@ -139,7 +162,7 @@ def preparar_anexos(
             elif isinstance(src, str) and src.startswith("https://"):
                 _validar_url_publica(src, allowed_hosts)
                 temp = stack.enter_context(tempfile.SpooledTemporaryFile(max_size=1024 * 1024, mode="w+b"))
-                _resolver_url(src, temp, max_bytes, timeout)
+                _resolver_url(src, temp, max_bytes, timeout, attachment.mime_type)
                 temp.seek(0)
                 data = temp
             elif isinstance(src, (str, Path)):
