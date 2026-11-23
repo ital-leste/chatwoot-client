@@ -76,3 +76,52 @@ def test_read_com_eof_em_bytes_preserva_envio():
     assert len(chamadas) == 1
     assert b"parte-um-parte-dois" in chamadas[0].content
     assert fluxo.closed is False
+
+
+@pytest.mark.parametrize("cabecalho,conteudo", [
+    ("text/html; charset=utf-8", b"<html>erro</html>"),
+    ("image/png", b"<html>erro</html>"),
+    ("image/jpeg", b"isto nao e um png"),
+])
+def test_anexo_remoto_rejeita_html_e_assinatura_invalida(monkeypatch, cabecalho, conteudo):
+    from chatwoot_client import attachment_resolver as resolver
+
+    cliente_http = httpx.Client
+    monkeypatch.setattr(resolver, "_validar_url_publica", lambda url, hosts: None)
+    monkeypatch.setattr(
+        resolver.httpx, "Client",
+        lambda **kwargs: cliente_http(
+            transport=httpx.MockTransport(
+                lambda req: httpx.Response(
+                    200, headers={"content-type": cabecalho}, content=conteudo,
+                )
+            ),
+        ),
+    )
+    with pytest.raises(ErroAnexoChatwoot):
+        with resolver.preparar_anexos(
+            (Attachment("https://midia.example/imagem.png", MimeType.PNG, "imagem.png"),)
+        ):
+            pass
+
+
+def test_anexo_remoto_png_valido(monkeypatch):
+    from chatwoot_client import attachment_resolver as resolver
+
+    png = bytes.fromhex("89504e470d0a1a0a") + b"conteudo-de-teste"
+    cliente_http = httpx.Client
+    monkeypatch.setattr(resolver, "_validar_url_publica", lambda url, hosts: None)
+    monkeypatch.setattr(
+        resolver.httpx, "Client",
+        lambda **kwargs: cliente_http(
+            transport=httpx.MockTransport(
+                lambda req: httpx.Response(
+                    200, headers={"content-type": "image/png"}, content=png,
+                )
+            ),
+        ),
+    )
+    with resolver.preparar_anexos(
+        (Attachment("https://midia.example/imagem.png", MimeType.PNG, "imagem.png"),)
+    ) as arquivos:
+        assert arquivos[0][1][1].read() == png
